@@ -1,0 +1,26 @@
+[project]
+name = "pkl-research"
+version = "0.1.0"
+description = "Tool riset perusahaan IT Jakarta Selatan untuk lamaran PKL: scrape Google Maps, filter rating/lokasi, generate draft pesan, dan tracker aplikasi."
+readme = "README.md"
+authors = [
+    { name = "kazanaru", email = "kazanaruishere@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "playwright>=1.62.0",
+    "rich>=15.0.0",
+    "typer>=0.27.1",
+]
+
+[project.scripts]
+pkl-research = "pkl_research:main"
+
+[build-system]
+requires = ["uv_build>=0.11.31,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

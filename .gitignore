@@ -1,0 +1,21 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Data hasil scrape & aset lokal
+data/
+output/
+user_data/
+
+# File konfigurasi pribadi (lokasi rumah, identitas)
+.env
+
+# Log runtime
+*.log
