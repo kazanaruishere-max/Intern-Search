@@ -86,9 +86,10 @@ Tool bersifat **semi-otomatis (human-in-the-loop)**:
 | `pkl-research db init` | Buat schema + jalankan migrasi (idempotent) |
 | `pkl-research search` | Scan & filter kandidat → upsert ke DB |
 | `pkl-research details [--force]` | Enrich review + foto + kontak |
+| `pkl-research profile [--force]` | Scan website qualified → profil + deteksi AI |
 | `pkl-research report` | Export laporan dari DB |
 | `pkl-research message <nama>` | Generate 1 draft → simpan DB + stdout |
-| `pkl-research db list [--status] [--min-rating] [--role] [--category] [--sort]` | Query DB (filter `--role ai/software/fullstack/game`) |
+| `pkl-research db list [--qualified] [--min-rating] [--min-reviews] [--role] [--category] [--sector] [--sort]` | Query DB |
 | `pkl-research db stats` | Ringkasan data |
 | `pkl-research track update <nama> --status <s> [--note ...]` | Update status PKL |
 | `pkl-research track list` | Semua aplikasi + status |

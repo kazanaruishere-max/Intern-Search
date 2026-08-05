@@ -103,3 +103,43 @@ def drafts_markdown(
             lines.append("---")
             lines.append("")
     Path(path).write_text("\n".join(lines), encoding="utf-8")
+
+
+def profiles_markdown(
+    profiles_with_company: list[tuple[object, Company]],
+    path: str | Path,
+) -> None:
+    """Dokumen profil perusahaan hasil scan website (qualified shortlist)."""
+    lines = ["# Profil Perusahaan (dari Website) — Qualified Shortlist", ""]
+    for profile, company in profiles_with_company:
+        ai_subfields = getattr(profile, "ai_subfields", None) or []
+        ai_focus = getattr(profile, "ai_focus", False)
+        lines.append(f"## {company.name}")
+        lines.append(f"- Website: {getattr(profile, 'website_url', None) or '-'}")
+        lines.append(f"- Fokus: {getattr(profile, 'core_focus', None) or '-'}")
+        if getattr(profile, "site_title", None):
+            lines.append(f"- Judul situs: {profile.site_title}")
+        if ai_focus:
+            lines.append(f"- **AI: {' / '.join(ai_subfields)}**")
+            for evidence in (getattr(profile, "ai_evidence", None) or [])[:2]:
+                lines.append(f'  - Bukti: "{evidence}"')
+        else:
+            lines.append("- AI: tidak terdeteksi")
+        career = (
+            f"ya — {getattr(profile, 'career_url', '')}"
+            if getattr(profile, "career_page_found", False)
+            else "tidak"
+        )
+        lines.append(f"- Halaman karir: {career}")
+        emails = getattr(profile, "emails", None) or []
+        social = getattr(profile, "social", None) or []
+        if emails:
+            lines.append(f"- Email: {', '.join(emails)}")
+        if social:
+            lines.append(f"- Sosmed: {', '.join(social)}")
+        about = getattr(profile, "about_text", None)
+        if about:
+            lines.append("- Tentang:")
+            lines.append(f"  {about[:400]}")
+        lines.append("")
+    Path(path).write_text("\n".join(lines), encoding="utf-8")

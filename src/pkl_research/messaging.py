@@ -59,6 +59,7 @@ def _build_context(
     company: Company,
     reviews: list[Review],
     identity: dict[str, str],
+    profile: object | None = None,
 ) -> dict[str, str]:
     highlights = review_highlights(reviews)
     if highlights:
@@ -71,6 +72,26 @@ def _build_context(
         else "dekat dari domisili saya"
     )
     kontak = identity["email"] or identity["telepon"] or "[kontak kamu]"
+
+    profil_line = ""
+    if profile is not None:
+        core_focus = getattr(profile, "core_focus", None)
+        ai_subfields = getattr(profile, "ai_subfields", None) or []
+        parts: list[str] = []
+        if core_focus:
+            parts.append(
+                f"Di website resmi {company.name}, saya melihat fokus perusahaan "
+                f"Anda di: {core_focus}"
+            )
+        if getattr(profile, "ai_focus", False) and ai_subfields:
+            parts.append(
+                "Yang paling menarik, Anda juga aktif di bidang "
+                + " & ".join(ai_subfields[:2])
+                + " — bidang yang sangat saya minati untuk ditekuni."
+            )
+        if parts:
+            profil_line = " ".join(parts)
+
     return {
         "nama": identity["nama"],
         "sekolah": identity["sekolah"],
@@ -84,6 +105,7 @@ def _build_context(
         "praise": praise,
         "jarak": jarak,
         "kontak": kontak,
+        "profil_line": profil_line,
     }
 
 
@@ -92,6 +114,7 @@ FORMAL = """Halo tim {perusahaan},
 Perkenalkan, saya {nama}, {jurusan} dari {sekolah}. Saat ini saya sedang mencari tempat Praktik Kerja Lapangan (PKL) di bidang {role}, dan {perusahaan} menjadi salah satu pilihan utama saya.
 
 Saya tertarik setelah melihat {perusahaan} memiliki rating {rating} dari {review_count} ulasan di Google Maps. {praise}
+{profil_line}
 
 Lokasi {perusahaan} juga tidak jauh dari domisili saya di Jakarta Selatan ({jarak}), sehingga saya dapat berkomitmen penuh selama PKL {durasi_pkl}.
 
@@ -104,6 +127,7 @@ Hormat saya,
 CASUAL = """Halo kak/tim {perusahaan},
 
 Saya {nama}, {jurusan} dari {sekolah}, lagi cari tempat PKL ({durasi_pkl}) di bidang {role}. Waktu riset, {perusahaan} langsung masuk radar saya — ratingnya {rating} dari {review_count} ulasan. {praise}
+{profil_line}
 
 Lokasi kantornya juga dekat dari domisili saya ({jarak}), jadi mobilitas selama PKL aman. Saya pengen banget belajar sekaligus bantu-bantu tim {perusahaan}, apalagi saya lagi fokus ngembangin skill di bidang {role}.
 
@@ -115,6 +139,7 @@ Kalau berkenan, saya boleh kirim CV/portofolio untuk dipertimbangkan ya. Terima 
 SHORT = """Halo {perusahaan},
 
 Saya {nama} ({jurusan}, {sekolah}) sedang mencari tempat PKL {durasi_pkl} di bidang {role}. Melihat {perusahaan} dengan rating {rating} dari {review_count} ulasan, saya sangat tertarik untuk belajar dan berkontribusi.
+{profil_line}
 
 Domisili saya di Jakarta Selatan, dekat dengan kantor Anda ({jarak}). Boleh saya kirim CV untuk dipertimbangkan?
 
@@ -133,7 +158,8 @@ def build_drafts(
     company: Company,
     reviews: list[Review],
     identity: dict[str, str],
+    profile: object | None = None,
 ) -> dict[str, str]:
     """Hasilkan 3 varian draft pesan untuk satu perusahaan."""
-    ctx = _build_context(company, reviews, identity)
+    ctx = _build_context(company, reviews, identity, profile)
     return {name: template.format(**ctx) for name, template in TEMPLATES.items()}

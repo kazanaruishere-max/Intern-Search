@@ -6,15 +6,23 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 
-from pkl_research.models import Application, Company, Review
+from pkl_research.models import Application, Company, CompanyProfile, Review
 
 COMPANY_COLUMNS = [
     "place_id", "name", "category", "categories", "rating", "review_count",
     "rating_breakdown", "address", "district", "city", "postal_code",
     "latitude", "longitude", "in_jakarta", "distance_km", "role_fit", "is_it",
-    "phone", "website", "email", "plus_code", "maps_url", "cid", "open_hours",
-    "description", "price_range", "photos", "photo_count", "scraped_at",
-    "enriched_at",
+    "sector", "phone", "website", "email", "plus_code", "maps_url", "cid",
+    "open_hours", "description", "price_range", "photos", "photo_count",
+    "scraped_at", "enriched_at",
+]
+
+PROFILE_COLUMNS = [
+    "company_id", "website_url", "site_title", "meta_description", "core_focus",
+    "about_text", "services_text", "career_page_found", "career_url",
+    "career_snippet", "ai_focus", "ai_subfields", "ai_keywords", "ai_evidence",
+    "emails", "social", "tech_stack", "keywords", "fetch_status", "fetched_at",
+    "created_at", "updated_at",
 ]
 
 APPLICATION_COLUMNS = [
@@ -62,6 +70,7 @@ class CompanyRepository:
             "distance_km": company.distance_km,
             "role_fit": _json(company.role_fit),
             "is_it": int(company.is_it),
+            "sector": company.sector or "unknown",
             "phone": company.phone,
             "website": company.website,
             "email": company.email,
@@ -115,6 +124,7 @@ class CompanyRepository:
         min_rating: float | None = None,
         role: str | None = None,
         category: str | None = None,
+        sector: str | None = None,
         sort: str = "rating",
     ) -> list[Company]:
         where: list[str] = []
@@ -131,6 +141,9 @@ class CompanyRepository:
         if category:
             where.append("c.category LIKE ?")
             params.append(f"%{category}%")
+        if sector:
+            where.append("c.sector = ?")
+            params.append(sector)
         clause = f"WHERE {' AND '.join(where)}" if where else ""
         order = {
             "rating": "c.rating DESC, c.distance_km ASC, c.review_count DESC",
@@ -171,6 +184,33 @@ class CompanyRepository:
         ).fetchall()
         return [Company.from_row(row) for row in rows]
 
+    def qualified(
+        self,
+        min_rating: float | None = None,
+        min_reviews: int | None = None,
+    ) -> list[Company]:
+        """Shortlist qualified: rating & ulasan tinggi, IT, dalam Jakarta."""
+        from pkl_research import config
+
+        rating = config.TARGET_RATING if min_rating is None else min_rating
+        reviews = config.TARGET_MIN_REVIEWS if min_reviews is None else min_reviews
+        rows = self.conn.execute(
+            """
+            SELECT * FROM companies
+            WHERE rating >= ? AND review_count >= ?
+              AND in_jakarta = 1 AND is_it = 1
+            ORDER BY rating DESC, review_count DESC, distance_km ASC
+            """,
+            (rating, reviews),
+        ).fetchall()
+        return [Company.from_row(row) for row in rows]
+
+    def set_sector(self, company_id: int, sector: str) -> None:
+        self.conn.execute(
+            "UPDATE companies SET sector = ? WHERE id = ?", (sector, company_id)
+        )
+        self.conn.commit()
+
     def mark_enriched(self, company_id: int) -> None:
         self.conn.execute(
             "UPDATE companies SET enriched_at = ? WHERE id = ?",
@@ -193,11 +233,18 @@ class CompanyRepository:
                 "FROM applications a GROUP BY a.status"
             )
         }
+        by_sector = {
+            row["sector"]: row["n"]
+            for row in self.conn.execute(
+                "SELECT sector, COUNT(*) AS n FROM companies GROUP BY sector"
+            )
+        }
         return {
             "total": total,
             "enriched": enriched,
             "avg_rating": round(avg_rating, 2) if avg_rating else None,
             "by_status": by_status,
+            "by_sector": by_sector,
         }
 
 
@@ -318,4 +365,77 @@ class ApplicationRepository:
                 "SELECT * FROM companies WHERE id = ?", (company_id,)
             ).fetchone()
             result.append((Application(company_id=company_id, **data), Company.from_row(company)))
+        return result
+
+
+class CompanyProfileRepository:
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self.conn = conn
+
+    def upsert(self, profile: CompanyProfile) -> int:
+        data = {
+            "company_id": profile.company_id,
+            "website_url": profile.website_url,
+            "site_title": profile.site_title,
+            "meta_description": profile.meta_description,
+            "core_focus": profile.core_focus,
+            "about_text": profile.about_text,
+            "services_text": profile.services_text,
+            "career_page_found": int(profile.career_page_found),
+            "career_url": profile.career_url,
+            "career_snippet": profile.career_snippet,
+            "ai_focus": int(profile.ai_focus),
+            "ai_subfields": _json(profile.ai_subfields),
+            "ai_keywords": _json(profile.ai_keywords),
+            "ai_evidence": _json(profile.ai_evidence),
+            "emails": _json(profile.emails),
+            "social": _json(profile.social),
+            "tech_stack": _json(profile.tech_stack),
+            "keywords": _json(profile.keywords),
+            "fetch_status": profile.fetch_status,
+            "fetched_at": profile.fetched_at,
+            "created_at": profile.created_at,
+            "updated_at": profile.updated_at,
+        }
+        columns = PROFILE_COLUMNS
+        placeholders = ",".join(f":{c}" for c in columns)
+        updates = ",".join(f"{c}=excluded.{c}" for c in columns if c != "company_id")
+        row = self.conn.execute(
+            f"""
+            INSERT INTO company_profiles ({','.join(columns)})
+            VALUES ({placeholders})
+            ON CONFLICT(company_id) DO UPDATE SET {updates}
+            RETURNING id
+            """,
+            data,
+        ).fetchone()
+        self.conn.commit()
+        return int(row["id"])
+
+    def get_by_company(self, company_id: int) -> CompanyProfile | None:
+        row = self.conn.execute(
+            "SELECT * FROM company_profiles WHERE company_id = ?", (company_id,)
+        ).fetchone()
+        return CompanyProfile.from_row(row) if row else None
+
+    def list_with_company(self) -> list[tuple[CompanyProfile, Company]]:
+        rows = self.conn.execute(
+            """
+            SELECT p.*, c.name AS company_name
+            FROM company_profiles p
+            JOIN companies c ON c.id = p.company_id
+            ORDER BY p.ai_focus DESC, c.rating DESC, c.review_count DESC
+            """
+        ).fetchall()
+        result: list[tuple[CompanyProfile, Company]] = []
+        for row in rows:
+            data = dict(row)
+            data.pop("company_name", None)
+            company_id = data.pop("company_id")
+            company = self.conn.execute(
+                "SELECT * FROM companies WHERE id = ?", (company_id,)
+            ).fetchone()
+            result.append(
+                (CompanyProfile(company_id=company_id, **data), Company.from_row(company))
+            )
         return result

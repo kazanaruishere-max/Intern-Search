@@ -37,6 +37,7 @@ class Company:
     distance_km: float | None = None
     role_fit: list[str] = field(default_factory=list)
     is_it: bool = False
+    sector: str = "unknown"
     phone: str | None = None
     website: str | None = None
     email: str | None = None
@@ -74,6 +75,7 @@ class Company:
             distance_km=data.pop("distance_km"),
             role_fit=_loads(data.pop("role_fit")) or [],
             is_it=bool(data.pop("is_it")),
+            sector=data.pop("sector") or "unknown",
             phone=data.pop("phone"),
             website=data.pop("website"),
             email=data.pop("email"),
@@ -109,6 +111,7 @@ class Company:
             "distance_km": self.distance_km,
             "role_fit": self.role_fit,
             "is_it": self.is_it,
+            "sector": self.sector,
             "phone": self.phone,
             "website": self.website,
             "email": self.email,
@@ -161,4 +164,42 @@ class Application:
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> "Application":
         data = dict(row)
+        return cls(**data)
+
+
+@dataclass
+class CompanyProfile:
+    """Profil perusahaan hasil scan website (fokus, tentang, karir, AI)."""
+
+    company_id: int
+    website_url: str | None = None
+    site_title: str | None = None
+    meta_description: str | None = None
+    core_focus: str | None = None
+    about_text: str | None = None
+    services_text: str | None = None
+    career_page_found: bool = False
+    career_url: str | None = None
+    career_snippet: str | None = None
+    ai_focus: bool = False
+    ai_subfields: list[str] = field(default_factory=list)
+    ai_keywords: list[str] = field(default_factory=list)
+    ai_evidence: list[str] = field(default_factory=list)
+    emails: list[str] = field(default_factory=list)
+    social: list[str] = field(default_factory=list)
+    tech_stack: list[str] = field(default_factory=list)
+    keywords: list[str] = field(default_factory=list)
+    fetch_status: str = "pending"
+    fetched_at: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    id: int | None = None
+
+    @classmethod
+    def from_row(cls, row: sqlite3.Row) -> "CompanyProfile":
+        data = dict(row)
+        data["career_page_found"] = bool(data.pop("career_page_found"))
+        data["ai_focus"] = bool(data.pop("ai_focus"))
+        for key in ("ai_subfields", "ai_keywords", "ai_evidence", "emails", "social", "tech_stack", "keywords"):
+            data[key] = _loads(data.pop(key)) or []
         return cls(**data)

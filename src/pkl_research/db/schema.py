@@ -74,6 +74,37 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX IF NOT EXISTS idx_applications_status ON applications (status);
     """,
+    # v2: klasifikasi sektor + profil website perusahaan
+    """
+    ALTER TABLE companies ADD COLUMN sector TEXT NOT NULL DEFAULT 'unknown';
+
+    CREATE TABLE IF NOT EXISTS company_profiles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        company_id INTEGER NOT NULL UNIQUE REFERENCES companies(id) ON DELETE CASCADE,
+        website_url TEXT,
+        site_title TEXT,
+        meta_description TEXT,
+        core_focus TEXT,
+        about_text TEXT,
+        services_text TEXT,
+        career_page_found INTEGER DEFAULT 0,
+        career_url TEXT,
+        career_snippet TEXT,
+        ai_focus INTEGER DEFAULT 0,
+        ai_subfields TEXT,
+        ai_keywords TEXT,
+        ai_evidence TEXT,
+        emails TEXT,
+        social TEXT,
+        tech_stack TEXT,
+        keywords TEXT,
+        fetch_status TEXT NOT NULL DEFAULT 'pending',
+        fetched_at TEXT,
+        created_at TEXT,
+        updated_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_profiles_company ON company_profiles (company_id);
+    """,
 ]
 
 

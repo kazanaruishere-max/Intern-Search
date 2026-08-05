@@ -5,7 +5,9 @@ Tool CLI **semi-otomatis** untuk riset perusahaan IT di sekitar Jakarta Selatan 
 - Scrape perusahaan IT dari **Google Maps** (rating, ulasan, foto, kontak, koordinat).
 - **Filter otomatis**: rating ≥ 4.5, jumlah ulasan ≥ 10, dalam DKI Jakarta, dan jarak dari rumah ≤ `MAX_DISTANCE_KM`.
 - **Tag peran**: software / AI / fullstack / game.
-- Generate **draft pesan lamaran yang dipersonalisasi** dari data & review sungguhan.
+- **Klasifikasi sektor**: swasta / negeri / bumn (dari nama, kategori, dan domain `.go.id`).
+- **Profil perusahaan dari website**: kunjungi website, ambil inti fokus (meta/heading), halaman tentang, layanan, halaman karir, email, sosmed — plus **deteksi unsur AI** (AI Development, Machine Learning, Chatbot, dsb) dengan bukti kutipan.
+- Generate **draft pesan lamaran yang dipersonalisasi** dari data, review, dan profil website.
 - **Database SQLite** untuk semua perusahaan + **tracker status lamaran** (shortlisted → applied → … → accepted).
 - **Human-in-the-loop**: tool hanya riset & menulis draft. **Tidak pernah mengirim lamaran sendiri.**
 
@@ -38,9 +40,13 @@ uv run pkl-research search --headless
 # 3. Enrich kandidat IT: kontak, foto, review (bisa lama ~15 detik/company)
 uv run pkl-research details --scope it --headless
 
-# 4. Review kandidat (filter per peran, rating, status)
+# 3b. Scan website kandidat qualified (>=4.9, >=100 ulasan): profil + deteksi AI
+uv run pkl-research profile --headless
+
+# 4. Review kandidat (filter per peran, rating, sektor)
+uv run pkl-research db list --qualified --sort distance
 uv run pkl-research db list --role software --min-rating 4.5
-uv run pkl-research db list --sort distance
+uv run pkl-research db list --sector negeri
 
 # 5. Generate draft pesan untuk satu perusahaan
 uv run pkl-research message "Nama Perusahaan"
@@ -59,10 +65,11 @@ uv run pkl-research report
 | `pkl-research db init` | Buat schema + migrasi (idempotent) |
 | `pkl-research search [--headless]` | Scan kandidat IT Jaksel → DB |
 | `pkl-research details --scope it [--headless] [--limit N] [--force]` | Enrich kontak, foto, review |
-| `pkl-research db list [--status] [--min-rating] [--role] [--category] [--sort]` | Query DB |
-| `pkl-research db stats` | Ringkasan data |
-| `pkl-research message "<nama>"` | Draft pesan (3 varian) → simpan + stdout |
-| `pkl-research report` | `report.md`, `companies.csv`, `companies.json`, `drafts.md` |
+| `pkl-research profile [--headless] [--force]` | Scan website qualified → profil + deteksi AI |
+| `pkl-research db list [--qualified] [--min-rating] [--min-reviews] [--role] [--category] [--sector] [--sort]` | Query DB (preset `--qualified` = ≥4.9 & ≥100 ulasan) |
+| `pkl-research db stats` | Ringkasan data (termasuk per sektor) |
+| `pkl-research message "<nama>"` | Draft pesan (3 varian, pakai profil website) → simpan + stdout |
+| `pkl-research report` | `report.md`, `profiles.md`, `companies.csv`, `companies.json`, `drafts.md` |
 | `pkl-research track update "<nama>" --status <s> [--note ...]` | Update status lamaran |
 | `pkl-research track list [--status]` | Lihat semua aplikasi |
 
@@ -72,13 +79,15 @@ Status: `shortlisted` / `applied` / `replied` / `interview` / `accepted` / `reje
 
 ```
 src/pkl_research/
-├── config.py        # konstanta + bbox Jakarta + query per peran + .env
-├── models.py        # dataclass: Company, Review, Application
+├── config.py        # konstanta + bbox Jakarta + query per peran + target qualified + .env
+├── models.py        # dataclass: Company, Review, Application, CompanyProfile
 ├── filters.py       # filter rating/geografi/jarak + klasifikasi peran (pure)
+├── sector.py        # klasifikasi sektor: swasta/negeri/bumn (pure)
+├── ai_detect.py     # deteksi unsur AI pada teks (regex frase, pure)
 ├── messaging.py     # template draft pesan (pure)
 ├── exporter.py      # CSV/JSON/Markdown (pure)
 ├── db/              # koneksi + schema/migrasi + Repository pattern
-└── scraper/         # Playwright: browser, search, detail, reviews
+└── scraper/         # Playwright: browser, search, detail, reviews, website
 ```
 
 ## Filter (PRD 5.1)
@@ -89,6 +98,13 @@ src/pkl_research/
 4. Koordinat dalam bounding box DKI Jakarta (hard, sekunder)
 5. Jarak dari rumah ≤ `MAX_DISTANCE_KM` (hard)
 6. Kategori IT (soft — ditandai `role_fit`, tidak di-drop)
+
+**Qualified shortlist** (target lamaran): rating ≥ 4.9 **dan** ulasan ≥ 100 (bisa diubah di `config.py`: `TARGET_RATING`, `TARGET_MIN_REVIEWS`).
+
+## Sektor & Deteksi AI
+
+- **Sektor**: `classify_sector(name, category, website)` → `negeri` (domain `.go.id`, nama Dinas/Kementerian/Pemerintah — word-boundary), `bumn` (`(Persero)`/BUMN terkurasi), `swasta`, `unknown`.
+- **Deteksi AI** (`ai_detect`): pola frase regex — AI Development, Artificial Intelligence/Kecerdasan Buatan, Machine Learning, Deep Learning, LLM/Generative AI, Chatbot, Computer Vision, NLP, Data Science, AI Agent. `\bai\b` sendirian tidak dihitung (anti false-positive). Output `ai_subfields` + `ai_evidence` (kutipan bukti).
 
 ## Anti-block
 

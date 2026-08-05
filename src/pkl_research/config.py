@@ -40,6 +40,11 @@ CENTER_JAKSEL = {"lat": -6.24, "lng": 106.80, "zoom": 13}
 MIN_RATING = 4.5
 MIN_REVIEW_COUNT = 10
 
+TARGET_RATING = 4.9
+TARGET_MIN_REVIEWS = 100
+
+SECTORS = ["swasta", "negeri", "bumn", "unknown"]
+
 DEFAULT_MAX_REVIEWS = 20
 MAX_REVIEWS = 100
 MAX_PHOTOS = 20
