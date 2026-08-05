@@ -43,10 +43,12 @@ def _scrollable_container(page: Page):
     return None
 
 
-def scroll_reviews(page: Page, max_rounds: int = 40) -> None:
-    """Scroll panel review sampai tidak ada kartu baru (load more)."""
+def scroll_reviews(page: Page, max_rounds: int = 40, target: int | None = None) -> None:
+    """Scroll panel review sampai tidak ada kartu baru atau cukup target."""
     for _ in range(max_rounds):
         before = page.locator("div.jftiEf").count()
+        if target and before >= target:
+            return
         container = _scrollable_container(page)
         if container is None:
             return

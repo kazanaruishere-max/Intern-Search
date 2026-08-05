@@ -234,7 +234,7 @@ def details(
 
             reviews: list[Review] = []
             if open_reviews(page):
-                scroll_reviews(page)
+                scroll_reviews(page, target=max_reviews)
                 parsed = parse_reviews(page, limit=max_reviews)
                 for r in parsed:
                     r.company_id = company_id
