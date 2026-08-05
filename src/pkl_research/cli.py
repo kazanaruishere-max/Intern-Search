@@ -23,6 +23,7 @@ from pkl_research.exporter import (
     companies_to_csv,
     companies_to_json,
     drafts_markdown,
+    profiles_markdown,
     report_markdown,
 )
 from pkl_research.filters import evaluate_candidate

@@ -6,7 +6,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 
-from pkl_research.models import Application, Company, CompanyProfile, Review
+from pkl_research.models import Application, Company, CompanyProfile, Review, _loads
 
 COMPANY_COLUMNS = [
     "place_id", "name", "category", "categories", "rating", "review_count",
@@ -432,6 +432,13 @@ class CompanyProfileRepository:
             data = dict(row)
             data.pop("company_name", None)
             company_id = data.pop("company_id")
+            for key in (
+                "ai_subfields", "ai_keywords", "ai_evidence", "emails",
+                "social", "tech_stack", "keywords",
+            ):
+                data[key] = _loads(data.pop(key)) or []
+            data["career_page_found"] = bool(data["career_page_found"])
+            data["ai_focus"] = bool(data["ai_focus"])
             company = self.conn.execute(
                 "SELECT * FROM companies WHERE id = ?", (company_id,)
             ).fetchone()
