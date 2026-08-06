@@ -36,6 +36,11 @@ SERVICES_PATHS = re.compile(
     r"products|portfolio|fitur|features|what-we-do|keahlian)(?:[/.\-_]|$)",
     re.IGNORECASE,
 )
+CONTACT_PATHS = re.compile(
+    r"/(?:contact|contact-us|kontak|kontak-kami|hubungi|hubungi-kami|"
+    r"hubungi-kita|get-in-touch|reach-us)(?:[/.\-_]|$)",
+    re.IGNORECASE,
+)
 
 SOCIAL_HOSTS = [
     "linkedin.com", "instagram.com", "facebook.com", "tiktok.com",
@@ -181,18 +186,16 @@ def scrape_website(page: Page, url: str, max_pages: int = 3) -> dict[str, object
     about = _pick_link(links, ABOUT_PATHS)
     career = _pick_link(links, CAREER_PATHS)
     services = _pick_link(links, SERVICES_PATHS)
+    contact = _pick_link(links, CONTACT_PATHS)
     if career:
         result["career_page_found"] = True
         result["career_url"] = career
 
     targets: list[tuple[str, str]] = []
-    if about:
-        targets.append(("about", about))
-    if services:
-        targets.append(("services", services))
-    if career and "about" not in [t[0] for t in targets]:
-        targets.append(("career", career))
-    targets = targets[: max(0, max_pages - 1)]
+    for kind, link in (("about", about), ("contact", contact),
+                       ("career", career), ("services", services)):
+        if link and len(targets) < max(0, max_pages - 1):
+            targets.append((kind, link))
 
     for kind, link in targets:
         try:
