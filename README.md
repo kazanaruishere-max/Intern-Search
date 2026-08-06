@@ -49,6 +49,10 @@ uv run pkl-research cv analyze "path/CV.pdf"
 # 3d. Ranking perusahaan by kecocokan dengan CV kamu
 uv run pkl-research cv match
 
+# 3e. SHORTLIST FINAL: IT + Jakarta Selatan + dekat rumah + fit CV
+#     → scan website semua kandidat + profil mendalam + draft top 10
+uv run pkl-research shortlist --headless
+
 # 4. Review kandidat (filter per peran, rating, sektor)
 uv run pkl-research db list --qualified --sort distance
 uv run pkl-research db list --role software --min-rating 4.5
@@ -78,6 +82,7 @@ uv run pkl-research report
 | `pkl-research report` | `report.md`, `profiles.md`, `companies.csv`, `companies.json`, `drafts.md` |
 | `pkl-research cv analyze "<path>"` | Analisa CV: skor 4 arah + ATS checklist → `output/cv_analysis.json` |
 | `pkl-research cv match` | Ranking perusahaan by fit-CV → simpan `fit_score` di DB |
+| `pkl-research shortlist [--max-km 6] [--min-fit 70] [--min-ulasan 10] [--headless]` | Shortlist CV-match (IT + Jakarta Selatan + dekat + fit): scan website → `shortlist.md` + `shortlist_drafts.md` (top N) |
 | `pkl-research track update "<nama>" --status <s> [--note ...]` | Update status lamaran |
 | `pkl-research track list [--status]` | Lihat semua aplikasi |
 

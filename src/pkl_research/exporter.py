@@ -143,3 +143,53 @@ def profiles_markdown(
             lines.append(f"  {about[:400]}")
         lines.append("")
     Path(path).write_text("\n".join(lines), encoding="utf-8")
+
+
+def shortlist_markdown(
+    items: list[tuple[Company, float, bool]],
+    profiles_by_id: dict[int, object],
+    path: str | Path,
+) -> None:
+    """Laporan mendalam kandidat shortlist (profil + tentang + AI + fit + jarak)."""
+    lines = [
+        "# Shortlist CV-Match — Perusahaan IT Jakarta Selatan",
+        "",
+        f"Total: **{len(items)}** perusahaan | filter: IT + Jakarta Selatan + "
+        "jarak ≤ 6 km + fit-CV ≥ 70 + ulasan ≥ 10",
+        "",
+    ]
+    for idx, (company, fit, ai) in enumerate(items, start=1):
+        profile = profiles_by_id.get(company.id)
+        lines.append(f"## {idx}. {company.name}")
+        lines.append(
+            f"- Fit-CV: **{fit:g}** | Rating: {company.rating} "
+            f"({company.review_count} ulasan) | Jarak: {company.distance_km:.1f} km"
+        )
+        lines.append(
+            f"- Role: {', '.join(company.role_fit) or '-'} | "
+            f"Sektor: {company.sector or '-'} | Website: {company.website or '-'}"
+        )
+        if profile and profile.ai_focus:
+            lines.append(
+                f"- **AI: {' / '.join(profile.ai_subfields)}**"
+            )
+        elif ai:
+            lines.append("- AI: (tertag peran, belum terkonfirmasi website)")
+        if profile:
+            if profile.core_focus:
+                lines.append(f"- Fokus: {profile.core_focus}")
+            if profile.about_text:
+                lines.append(f"- Tentang: {profile.about_text[:350]}")
+            if profile.services_text:
+                lines.append(f"- Layanan: {profile.services_text[:250]}")
+            if profile.career_page_found:
+                lines.append(f"- Halaman karir: ya — {profile.career_url}")
+            if profile.emails:
+                lines.append(f"- Email: {', '.join(profile.emails)}")
+            if profile.social:
+                lines.append(f"- Sosmed: {', '.join(profile.social)}")
+            if profile.ai_focus:
+                for evidence in (profile.ai_evidence or [])[:2]:
+                    lines.append(f'  - Bukti AI: "{evidence}"')
+        lines.append("")
+    Path(path).write_text("\n".join(lines), encoding="utf-8")

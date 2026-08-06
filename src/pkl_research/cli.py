@@ -26,6 +26,7 @@ from pkl_research.exporter import (
     drafts_markdown,
     profiles_markdown,
     report_markdown,
+    shortlist_markdown,
 )
 from pkl_research.filters import evaluate_candidate
 from pkl_research.messaging import build_drafts
@@ -36,6 +37,7 @@ from pkl_research.scraper.reviews import open_reviews, parse_reviews, scroll_rev
 from pkl_research.scraper.search import collect_candidates
 from pkl_research.scraper.website import is_real_website, scrape_website
 from pkl_research.sector import classify_sector
+from pkl_research.shortlist import build_shortlist
 
 console = Console(legacy_windows=False)
 
@@ -274,6 +276,64 @@ def details(
             human_delay(page, config.BETWEEN_COMPANIES_DELAY_SEC)
 
 
+def _scan_website_profile(page, company, profile_repo) -> dict[str, object]:
+    """Scan 1 website perusahaan → upsert CompanyProfile. Return ringkasan log."""
+    from pkl_research.ai_detect import detect_ai
+
+    raw = scrape_website(page, company.website)  # type: ignore[arg-type]
+    now = _now()
+    if raw.get("fetch_status") != "ok":
+        profile_repo.upsert(
+            CompanyProfile(
+                company_id=company.id,
+                website_url=company.website,
+                fetch_status="failed",
+                fetched_at=now,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        return {"ok": False, "ai_label": "gagal", "focus": "-"}
+
+    pages = raw.get("pages") or []
+    texts = [
+        str(raw.get("site_title") or ""),
+        str(raw.get("meta_description") or ""),
+        *(str(p) for p in pages),
+    ]
+    detection = detect_ai(texts)
+    profile_repo.upsert(
+        CompanyProfile(
+            company_id=company.id,
+            website_url=company.website,
+            site_title=raw.get("site_title"),
+            meta_description=raw.get("meta_description"),
+            core_focus=raw.get("core_focus"),
+            about_text=raw.get("about_text"),
+            services_text=raw.get("services_text"),
+            career_page_found=bool(raw.get("career_page_found")),
+            career_url=raw.get("career_url"),
+            career_snippet=raw.get("career_snippet"),
+            ai_focus=detection.ai_focus,
+            ai_subfields=detection.subfields,
+            ai_keywords=detection.keywords,
+            ai_evidence=detection.evidence,
+            emails=raw.get("emails"),
+            social=raw.get("social"),
+            fetch_status="ok",
+            fetched_at=now,
+            created_at=now,
+            updated_at=now,
+        )
+    )
+    ai_label = ", ".join(detection.subfields) if detection.ai_focus else "tidak terdeteksi"
+    return {
+        "ok": True,
+        "ai_label": ai_label,
+        "focus": str(raw.get("core_focus") or "-")[:60],
+    }
+
+
 @app.command()
 def profile(
     headless: bool = typer.Option(False, "--headless", help="Tanpa jendela browser"),
@@ -281,8 +341,6 @@ def profile(
     limit: int | None = typer.Option(None, help="Batasi jumlah (debug)"),
 ) -> None:
     """Kunjungi website perusahaan qualified → simpan profil (fokus, tentang, AI)."""
-    from pkl_research.ai_detect import detect_ai
-
     conn = _connect()
     repo = CompanyRepository(conn)
     profile_repo = CompanyProfileRepository(conn)
@@ -307,58 +365,134 @@ def profile(
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         for idx, c in enumerate(targets, start=1):
             console.print(f"[{idx}/{len(targets)}] {c.name}...", end=" ")
-            raw = scrape_website(page, c.website)  # type: ignore[arg-type]
-            if raw.get("fetch_status") != "ok":
+            summary = _scan_website_profile(page, c, profile_repo)
+            if summary["ok"]:
+                console.print(
+                    f"[green]ok[/green] | AI: {summary['ai_label']} | fokus: {summary['focus']}"
+                )
+            else:
                 console.print("[red]gagal load website[/red]")
-                profile_repo.upsert(
-                    CompanyProfile(
-                        company_id=c.id,
-                        website_url=c.website,
-                        fetch_status="failed",
-                        fetched_at=_now(),
-                        created_at=_now(),
-                        updated_at=_now(),
-                    )
-                )
-                continue
-            pages = raw.get("pages") or []
-            texts = [
-                str(raw.get("site_title") or ""),
-                str(raw.get("meta_description") or ""),
-                *(str(p) for p in pages),
-            ]
-            detection = detect_ai(texts)
-            now = _now()
-            profile_repo.upsert(
-                CompanyProfile(
-                    company_id=c.id,
-                    website_url=c.website,
-                    site_title=raw.get("site_title"),
-                    meta_description=raw.get("meta_description"),
-                    core_focus=raw.get("core_focus"),
-                    about_text=raw.get("about_text"),
-                    services_text=raw.get("services_text"),
-                    career_page_found=bool(raw.get("career_page_found")),
-                    career_url=raw.get("career_url"),
-                    career_snippet=raw.get("career_snippet"),
-                    ai_focus=detection.ai_focus,
-                    ai_subfields=detection.subfields,
-                    ai_keywords=detection.keywords,
-                    ai_evidence=detection.evidence,
-                    emails=raw.get("emails"),
-                    social=raw.get("social"),
-                    fetch_status="ok",
-                    fetched_at=now,
-                    created_at=now,
-                    updated_at=now,
-                )
-            )
-            ai_label = ", ".join(detection.subfields) if detection.ai_focus else "tidak terdeteksi"
-            focus = str(raw.get("core_focus") or "-")[:60]
-            console.print(
-                f"[green]ok[/green] | AI: {ai_label} | fokus: {focus}"
-            )
             human_delay(page, (2.0, 4.0))
+
+
+# ---------------------------------------------------------------------------
+# shortlist
+# ---------------------------------------------------------------------------
+
+@app.command()
+def shortlist(
+    max_km: float = typer.Option(6.0, "--max-km", help="Jarak maksimal dari rumah"),
+    min_fit: float = typer.Option(70.0, "--min-fit", help="Minimal fit score CV"),
+    min_ulasan: int = typer.Option(10, "--min-ulasan", help="Minimal jumlah ulasan"),
+    min_rating: float = typer.Option(4.5, "--min-rating", help="Minimal rating"),
+    headless: bool = typer.Option(False, "--headless", help="Tanpa jendela browser"),
+    scan_websites: bool = typer.Option(True, "--scan/--no-scan", help="Scan website kandidat"),
+    force: bool = typer.Option(False, "--force", help="Scan ulang semua website"),
+    top_drafts: int = typer.Option(10, "--top-drafts", help="Jumlah draft yang dibuat"),
+) -> None:
+    """Shortlist CV-match: IT + Jakarta Selatan + dekat rumah + fit CV → profil mendalam + draft."""
+    analysis = _load_cv_analysis()
+    if not analysis:
+        raise typer.BadParameter(
+            "Belum ada analisa CV. Jalankan dulu: pkl-research cv analyze <path>"
+        )
+    conn = _connect()
+    repo = CompanyRepository(conn)
+    profile_repo = CompanyProfileRepository(conn)
+    review_repo = ReviewRepository(conn)
+
+    companies = repo.find()
+    ai_by_id = {p.company_id: p.ai_focus for p, _ in profile_repo.list_with_company()}
+    items = build_shortlist(
+        companies,
+        analysis,
+        max_km=max_km,
+        min_fit=min_fit,
+        min_ulasan=min_ulasan,
+        min_rating=min_rating,
+        ai_by_id=ai_by_id,
+    )
+    console.print(
+        f"[bold]Shortlist: {len(items)} perusahaan[/bold] "
+        f"(IT + Jakarta Selatan + ≤{max_km:g} km + fit ≥ {min_fit:g} + ulasan ≥ {min_ulasan})"
+    )
+
+    if scan_websites:
+        done = {
+            p.company_id
+            for p, _ in profile_repo.list_with_company()
+            if p.fetch_status == "ok"
+        }
+        targets = [
+            c for c, _, _ in items
+            if is_real_website(c.website) and (force or c.id not in done)
+        ]
+        console.print(f"Menscan website {len(targets)} kandidat...")
+        with BrowserSession(config.USER_DATA_DIR, headless=headless) as ctx:
+            page = ctx.pages[0] if ctx.pages else ctx.new_page()
+            for idx, c in enumerate(targets, start=1):
+                console.print(f"[{idx}/{len(targets)}] {c.name}...", end=" ")
+                summary = _scan_website_profile(page, c, profile_repo)
+                if summary["ok"]:
+                    console.print(
+                        f"[green]ok[/green] | AI: {summary['ai_label']} | fokus: {summary['focus']}"
+                    )
+                else:
+                    console.print("[red]gagal[/red]")
+                human_delay(page, (2.0, 4.0))
+        ai_by_id = {p.company_id: p.ai_focus for p, _ in profile_repo.list_with_company()}
+        items = build_shortlist(
+            companies, analysis, max_km=max_km, min_fit=min_fit,
+            min_ulasan=min_ulasan, min_rating=min_rating, ai_by_id=ai_by_id,
+        )
+
+    profiles_by_id = {p.company_id: p for p, _ in profile_repo.list_with_company()}
+
+    table = Table(title=f"Shortlist ({len(items)})")
+    for col in ("Nama", "Fit", "AI", "Rating", "Ulasan", "Jarak", "Role"):
+        table.add_column(col)
+    for company, fit, ai in items[:30]:
+        table.add_row(
+            company.name,
+            f"{fit:g}",
+            "[green]YA[/green]" if ai else "-",
+            f"{company.rating:g}" if company.rating else "-",
+            str(company.review_count or "-"),
+            f"{company.distance_km:.1f} km" if company.distance_km is not None else "-",
+            ",".join(company.role_fit) or "-",
+        )
+    console.print(table)
+
+    config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    shortlist_markdown(items, profiles_by_id, config.OUTPUT_DIR / "shortlist.md")
+
+    identity = config.identity()
+    drafts: dict[str, dict[str, str]] = {}
+    for company, _, _ in items[:top_drafts]:
+        reviews = review_repo.list_by_company(company.id) if company.id else []
+        profile = profiles_by_id.get(company.id)
+        drafts[company.name] = build_drafts(company, reviews, identity, profile, analysis)
+    drafts_markdown(drafts, config.OUTPUT_DIR / "shortlist_drafts.md")
+
+    console.print("[green]File dibuat:[/green]")
+    console.print(f"  - {config.OUTPUT_DIR / 'shortlist.md'}")
+    console.print(f"  - {config.OUTPUT_DIR / 'shortlist_drafts.md'} ({len(drafts)} draft)")
+
+    ai_items = [
+        (c, f) for c, f, a in items
+        if a or (profiles_by_id.get(c.id) and profiles_by_id[c.id].ai_focus)
+    ]
+    console.print("\n[bold]Rekomendasi teratas (AI-first):[/bold]")
+    for company, fit in ai_items[:3]:
+        console.print(
+            f"  • [green][AI][/green] {company.name} — fit {fit:g}, "
+            f"{company.review_count} ulasan, {company.distance_km:.1f} km"
+        )
+    for company, fit, _ in items[3:8]:
+        console.print(
+            f"  • {company.name} — fit {fit:g}, "
+            f"{company.review_count} ulasan, {company.distance_km:.1f} km"
+        )
 
 
 # ---------------------------------------------------------------------------
