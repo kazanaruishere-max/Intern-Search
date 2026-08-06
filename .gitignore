@@ -21,6 +21,7 @@ user_data/
 *.log
 
 # CV pribadi (jangan di-commit)
-Azka_Syahirull_CV_Revised.docx
+Azka_*.docx
 CV_*.pdf
 CV_*.docx
+
