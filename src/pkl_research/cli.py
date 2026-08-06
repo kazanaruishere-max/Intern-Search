@@ -38,6 +38,7 @@ from pkl_research.scraper.search import collect_candidates
 from pkl_research.scraper.website import is_real_website, scrape_website
 from pkl_research.sector import classify_sector
 from pkl_research.shortlist import build_shortlist
+from pkl_research.xlsx_export import export_shortlist_xlsx
 
 console = Console(legacy_windows=False)
 
@@ -473,9 +474,16 @@ def shortlist(
         profile = profiles_by_id.get(company.id)
         drafts[company.name] = build_drafts(company, reviews, identity, profile, analysis)
     drafts_markdown(drafts, config.OUTPUT_DIR / "shortlist_drafts.md")
+    export_shortlist_xlsx(
+        items,
+        profiles_by_id,
+        drafts,
+        config.OUTPUT_DIR / "shortlist.xlsx",
+    )
 
     console.print("[green]File dibuat:[/green]")
     console.print(f"  - {config.OUTPUT_DIR / 'shortlist.md'}")
+    console.print(f"  - {config.OUTPUT_DIR / 'shortlist.xlsx'} (3 sheet berwarna)")
     console.print(f"  - {config.OUTPUT_DIR / 'shortlist_drafts.md'} ({len(drafts)} draft)")
 
     ai_items = [

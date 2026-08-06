@@ -82,7 +82,7 @@ uv run pkl-research report
 | `pkl-research report` | `report.md`, `profiles.md`, `companies.csv`, `companies.json`, `drafts.md` |
 | `pkl-research cv analyze "<path>"` | Analisa CV: skor 4 arah + ATS checklist → `output/cv_analysis.json` |
 | `pkl-research cv match` | Ranking perusahaan by fit-CV → simpan `fit_score` di DB |
-| `pkl-research shortlist [--max-km 6] [--min-fit 70] [--min-ulasan 10] [--headless]` | Shortlist CV-match (IT + Jakarta Selatan + dekat + fit): scan website → `shortlist.md` + `shortlist_drafts.md` (top N) |
+| `pkl-research shortlist [--max-km 6] [--min-fit 70] [--min-ulasan 10] [--headless]` | Shortlist CV-match (IT + Jakarta Selatan + dekat + fit): scan website → `shortlist.md` + **`shortlist.xlsx` (3 sheet berwarna)** + `shortlist_drafts.md` (top N) |
 | `pkl-research track update "<nama>" --status <s> [--note ...]` | Update status lamaran |
 | `pkl-research track list [--status]` | Lihat semua aplikasi |
 
