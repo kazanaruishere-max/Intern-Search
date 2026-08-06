@@ -19,3 +19,8 @@ user_data/
 
 # Log runtime
 *.log
+
+# CV pribadi (jangan di-commit)
+Azka_Syahirull_CV_Revised.docx
+CV_*.pdf
+CV_*.docx
