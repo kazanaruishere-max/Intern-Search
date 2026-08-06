@@ -38,6 +38,7 @@ class Company:
     role_fit: list[str] = field(default_factory=list)
     is_it: bool = False
     sector: str = "unknown"
+    fit_score: float | None = None
     phone: str | None = None
     website: str | None = None
     email: str | None = None
@@ -76,6 +77,7 @@ class Company:
             role_fit=_loads(data.pop("role_fit")) or [],
             is_it=bool(data.pop("is_it")),
             sector=data.pop("sector") or "unknown",
+            fit_score=data.pop("fit_score"),
             phone=data.pop("phone"),
             website=data.pop("website"),
             email=data.pop("email"),
@@ -112,6 +114,7 @@ class Company:
             "role_fit": self.role_fit,
             "is_it": self.is_it,
             "sector": self.sector,
+            "fit_score": self.fit_score,
             "phone": self.phone,
             "website": self.website,
             "email": self.email,

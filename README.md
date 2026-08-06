@@ -43,6 +43,12 @@ uv run pkl-research details --scope it --headless
 # 3b. Scan website kandidat qualified (>=4.9, >=100 ulasan): profil + deteksi AI
 uv run pkl-research profile --headless
 
+# 3c. Analisa CV kamu → skor arah (software/AI/fullstack/game) + ATS checklist
+uv run pkl-research cv analyze "path/CV.pdf"
+
+# 3d. Ranking perusahaan by kecocokan dengan CV kamu
+uv run pkl-research cv match
+
 # 4. Review kandidat (filter per peran, rating, sektor)
 uv run pkl-research db list --qualified --sort distance
 uv run pkl-research db list --role software --min-rating 4.5
@@ -70,6 +76,8 @@ uv run pkl-research report
 | `pkl-research db stats` | Ringkasan data (termasuk per sektor) |
 | `pkl-research message "<nama>"` | Draft pesan (3 varian, pakai profil website) → simpan + stdout |
 | `pkl-research report` | `report.md`, `profiles.md`, `companies.csv`, `companies.json`, `drafts.md` |
+| `pkl-research cv analyze "<path>"` | Analisa CV: skor 4 arah + ATS checklist → `output/cv_analysis.json` |
+| `pkl-research cv match` | Ranking perusahaan by fit-CV → simpan `fit_score` di DB |
 | `pkl-research track update "<nama>" --status <s> [--note ...]` | Update status lamaran |
 | `pkl-research track list [--status]` | Lihat semua aplikasi |
 
@@ -105,6 +113,12 @@ src/pkl_research/
 
 - **Sektor**: `classify_sector(name, category, website)` → `negeri` (domain `.go.id`, nama Dinas/Kementerian/Pemerintah — word-boundary), `bumn` (`(Persero)`/BUMN terkurasi), `swasta`, `unknown`.
 - **Deteksi AI** (`ai_detect`): pola frase regex — AI Development, Artificial Intelligence/Kecerdasan Buatan, Machine Learning, Deep Learning, LLM/Generative AI, Chatbot, Computer Vision, NLP, Data Science, AI Agent. `\bai\b` sendirian tidak dihitung (anti false-positive). Output `ai_subfields` + `ai_evidence` (kutipan bukti).
+
+## Analisa CV & Pencocokan
+
+- **`cv analyze`**: ekstrak teks dari PDF/DOCX/TXT (`pypdf`, `python-docx`), deteksi skill teknis, skor 4 arah (0–100): software/AI/fullstack/game, plus checklist ATS (kontak, section, keyword, angka terukur, panjang).
+- **`cv match`**: ranking perusahaan `fit_score` = rata-rata skor CV untuk `role_fit` perusahaan → tersimpan di kolom `fit_score` (migrasi v3).
+- Draft pesan otomatis menyisipkan skill CV yang relevan dengan arah perusahaan.
 
 ## Anti-block
 

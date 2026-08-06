@@ -105,6 +105,10 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX IF NOT EXISTS idx_profiles_company ON company_profiles (company_id);
     """,
+    # v3: fit score hasil pencocokan CV
+    """
+    ALTER TABLE companies ADD COLUMN fit_score REAL;
+    """,
 ]
 
 

@@ -211,6 +211,12 @@ class CompanyRepository:
         )
         self.conn.commit()
 
+    def set_fit_score(self, company_id: int, fit_score: float | None) -> None:
+        self.conn.execute(
+            "UPDATE companies SET fit_score = ? WHERE id = ?", (fit_score, company_id)
+        )
+        self.conn.commit()
+
     def mark_enriched(self, company_id: int) -> None:
         self.conn.execute(
             "UPDATE companies SET enriched_at = ? WHERE id = ?",

@@ -55,11 +55,33 @@ def role_text(role_fit: list[str]) -> str:
     return " & ".join(labels)
 
 
+def _cv_skill_line(company: Company, cv_analysis: dict | None) -> str:
+    """Kalimat skill relevan dari hasil analisa CV, untuk role_fit perusahaan."""
+    if not cv_analysis:
+        return ""
+    role_fit = company.role_fit
+    if not role_fit:
+        return ""
+    scores = cv_analysis.get("scores", {})
+    best = max(role_fit, key=lambda r: scores.get(r, 0), default=None)
+    if not best or scores.get(best, 0) <= 0:
+        return ""
+    skills = (cv_analysis.get("skills", {}).get(best, []) or [])[:4]
+    if not skills:
+        return ""
+    label = config.ROLE_LABEL_ID.get(best, best)
+    return (
+        f"Skill saya yang relevan dengan fokus {label}: "
+        f"{', '.join(skills)}."
+    )
+
+
 def _build_context(
     company: Company,
     reviews: list[Review],
     identity: dict[str, str],
     profile: object | None = None,
+    cv_analysis: dict | None = None,
 ) -> dict[str, str]:
     highlights = review_highlights(reviews)
     if highlights:
@@ -92,6 +114,8 @@ def _build_context(
         if parts:
             profil_line = " ".join(parts)
 
+    cv_line = _cv_skill_line(company, cv_analysis)
+
     return {
         "nama": identity["nama"],
         "sekolah": identity["sekolah"],
@@ -106,6 +130,7 @@ def _build_context(
         "jarak": jarak,
         "kontak": kontak,
         "profil_line": profil_line,
+        "cv_line": cv_line,
     }
 
 
@@ -115,6 +140,7 @@ Perkenalkan, saya {nama}, {jurusan} dari {sekolah}. Saat ini saya sedang mencari
 
 Saya tertarik setelah melihat {perusahaan} memiliki rating {rating} dari {review_count} ulasan di Google Maps. {praise}
 {profil_line}
+{cv_line}
 
 Lokasi {perusahaan} juga tidak jauh dari domisili saya di Jakarta Selatan ({jarak}), sehingga saya dapat berkomitmen penuh selama PKL {durasi_pkl}.
 
@@ -128,6 +154,7 @@ CASUAL = """Halo kak/tim {perusahaan},
 
 Saya {nama}, {jurusan} dari {sekolah}, lagi cari tempat PKL ({durasi_pkl}) di bidang {role}. Waktu riset, {perusahaan} langsung masuk radar saya — ratingnya {rating} dari {review_count} ulasan. {praise}
 {profil_line}
+{cv_line}
 
 Lokasi kantornya juga dekat dari domisili saya ({jarak}), jadi mobilitas selama PKL aman. Saya pengen banget belajar sekaligus bantu-bantu tim {perusahaan}, apalagi saya lagi fokus ngembangin skill di bidang {role}.
 
@@ -140,6 +167,7 @@ SHORT = """Halo {perusahaan},
 
 Saya {nama} ({jurusan}, {sekolah}) sedang mencari tempat PKL {durasi_pkl} di bidang {role}. Melihat {perusahaan} dengan rating {rating} dari {review_count} ulasan, saya sangat tertarik untuk belajar dan berkontribusi.
 {profil_line}
+{cv_line}
 
 Domisili saya di Jakarta Selatan, dekat dengan kantor Anda ({jarak}). Boleh saya kirim CV untuk dipertimbangkan?
 
@@ -159,7 +187,8 @@ def build_drafts(
     reviews: list[Review],
     identity: dict[str, str],
     profile: object | None = None,
+    cv_analysis: dict | None = None,
 ) -> dict[str, str]:
     """Hasilkan 3 varian draft pesan untuk satu perusahaan."""
-    ctx = _build_context(company, reviews, identity, profile)
+    ctx = _build_context(company, reviews, identity, profile, cv_analysis)
     return {name: template.format(**ctx) for name, template in TEMPLATES.items()}

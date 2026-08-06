@@ -87,6 +87,8 @@ Tool bersifat **semi-otomatis (human-in-the-loop)**:
 | `pkl-research search` | Scan & filter kandidat → upsert ke DB |
 | `pkl-research details [--force]` | Enrich review + foto + kontak |
 | `pkl-research profile [--force]` | Scan website qualified → profil + deteksi AI |
+| `pkl-research cv analyze "<path>"` | Analisa CV → skor 4 arah + ATS checklist |
+| `pkl-research cv match` | Ranking perusahaan by fit-CV → simpan `fit_score` |
 | `pkl-research report` | Export laporan dari DB |
 | `pkl-research message <nama>` | Generate 1 draft → simpan DB + stdout |
 | `pkl-research db list [--qualified] [--min-rating] [--min-reviews] [--role] [--category] [--sector] [--sort]` | Query DB |

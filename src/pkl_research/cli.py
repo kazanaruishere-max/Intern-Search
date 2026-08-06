@@ -19,6 +19,7 @@ from pkl_research.db.repositories import (
     ReviewRepository,
 )
 from pkl_research.db.schema import apply_migrations
+from pkl_research import cv as cvmod
 from pkl_research.exporter import (
     companies_to_csv,
     companies_to_json,
@@ -41,8 +42,10 @@ console = Console(legacy_windows=False)
 app = typer.Typer(help="PKL Research Tool — riset perusahaan IT Jakarta Selatan.")
 db_app = typer.Typer(help="Manajemen database.")
 track_app = typer.Typer(help="Tracker status lamaran PKL.")
+cv_app = typer.Typer(help="Analisa CV & pencocokan arah/perusahaan.")
 app.add_typer(db_app, name="db")
 app.add_typer(track_app, name="track")
+app.add_typer(cv_app, name="cv")
 
 
 def _connect():
@@ -68,6 +71,10 @@ def _resolve_company(conn, name: str) -> Company:
     raise typer.BadParameter(
         f"'{name}' ambigu. Cocok: {', '.join(c.name for c in matches[:5])}"
     )
+
+
+def _load_cv_analysis() -> dict | None:
+    return cvmod.load_analysis(config.OUTPUT_DIR / "cv_analysis.json")
 
 
 def _apply_filters(company: Company) -> Company:
@@ -355,6 +362,101 @@ def profile(
 
 
 # ---------------------------------------------------------------------------
+# cv
+# ---------------------------------------------------------------------------
+
+@cv_app.command("analyze")
+def cv_analyze(
+    path: str = typer.Argument(..., help="Path file CV (PDF/DOCX/TXT)"),
+) -> None:
+    """Analisa CV: skor arah (software/AI/fullstack/game) + checklist ATS."""
+    try:
+        text = cvmod.extract_text(path)
+    except Exception as exc:
+        raise typer.BadParameter(f"Gagal membaca file CV: {exc}") from exc
+    analysis = cvmod.analyze_cv(text)
+    analysis_path = config.OUTPUT_DIR / "cv_analysis.json"
+    cvmod.save_analysis(analysis, analysis_path)
+
+    table = Table(title="Kecocokan Arah (0-100)")
+    for col in ("Arah", "Skor", "Skill terdeteksi"):
+        table.add_column(col)
+    for direction, score in sorted(analysis["scores"].items(), key=lambda kv: -kv[1]):
+        label = cvmod.ROLE_LABEL.get(direction, direction)
+        table.add_row(label, str(score), ", ".join(analysis["skills"][direction][:10]))
+    console.print(table)
+
+    console.print("\n[bold]Rekomendasi:[/bold]")
+    for s in analysis["strengths"]:
+        console.print(f"  • {s}")
+    if analysis["gaps"]:
+        console.print("\n[bold]Gap yang perlu diisi:[/bold]")
+        for g in analysis["gaps"]:
+            console.print(f"  • {g}")
+
+    console.print("\n[bold]Checklist ATS:[/bold]")
+    for check in analysis["ats"]:
+        mark = "[green]PASS[/green]" if check["ok"] else "[red]FAIL[/red]"
+        note = f" — {check['note']}" if check["note"] else ""
+        console.print(f"  {mark} {check['check']}{note}")
+
+    console.print(f"\n[s cyan]Hasil tersimpan: {analysis_path}[/s cyan]")
+
+
+@cv_app.command("match")
+def cv_match(
+    save: bool = typer.Option(True, "--save/--no-save", help="Simpan fit_score ke DB"),
+    limit: int | None = typer.Option(None, help="Batasi jumlah hasil"),
+    min_fit: float | None = typer.Option(None, help="Minimal fit score"),
+) -> None:
+    """Ranking perusahaan berdasarkan kecocokan dengan CV (perlu cv analyze dulu)."""
+    analysis = cvmod.load_analysis(config.OUTPUT_DIR / "cv_analysis.json")
+    if not analysis:
+        raise typer.BadParameter(
+            "Belum ada hasil analisa CV. Jalankan dulu: pkl-research cv analyze <path>"
+        )
+    conn = _connect()
+    repo = CompanyRepository(conn)
+    qualified = repo.qualified()
+    qualified_ids = {c.id for c in qualified}
+    companies = qualified + [
+        c for c in repo.find() if c.is_it and c.id not in qualified_ids
+    ]
+    ranked = sorted(
+        companies,
+        key=lambda c: (
+            cvmod.fit_for_roles(analysis, c.role_fit),
+            c.rating or 0,
+            c.review_count or 0,
+        ),
+        reverse=True,
+    )
+    if save:
+        for c in ranked:
+            repo.set_fit_score(c.id, cvmod.fit_for_roles(analysis, c.role_fit))
+
+    table = Table(title=f"Perusahaan by Fit-CV ({len(ranked)})")
+    for col in ("Nama", "Fit", "Rating", "Ulasan", "Jarak", "Role"):
+        table.add_column(col)
+    for c in ranked:
+        fit = cvmod.fit_for_roles(analysis, c.role_fit)
+        if min_fit and fit < min_fit:
+            continue
+        d = f"{c.distance_km:.1f} km" if c.distance_km is not None else "-"
+        table.add_row(
+            c.name,
+            f"{fit:g}",
+            f"{c.rating:g}" if c.rating else "-",
+            str(c.review_count or "-"),
+            d,
+            ",".join(c.role_fit) or "-",
+        )
+    console.print(table)
+    if limit:
+        console.print(f"(menampilkan {limit} teratas — jalankan tanpa --limit untuk lengkap)")
+
+
+# ---------------------------------------------------------------------------
 # report / message
 # ---------------------------------------------------------------------------
 
@@ -381,13 +483,14 @@ def report() -> None:
     )
 
     identity = config.identity()
+    cv_analysis = _load_cv_analysis()
     drafts: dict[str, dict[str, str]] = {}
     for c in companies:
         reviews = review_repo.list_by_company(c.id) if c.id else []
         if not reviews:
             continue
         profile = profile_repo.get_by_company(c.id) if c.id else None
-        drafts[c.name] = build_drafts(c, reviews, identity, profile)
+        drafts[c.name] = build_drafts(c, reviews, identity, profile, cv_analysis)
     drafts_markdown(drafts, config.OUTPUT_DIR / "drafts.md")
 
     console.print("[green]Laporan dibuat di:[/green]")
@@ -408,7 +511,8 @@ def message(company: str = typer.Argument(..., help="Nama perusahaan")) -> None:
     profile_repo = CompanyProfileRepository(conn)
     reviews = review_repo.list_by_company(c.id) if c.id else []
     profile = profile_repo.get_by_company(c.id) if c.id else None
-    drafts = build_drafts(c, reviews, config.identity(), profile)
+    cv_analysis = _load_cv_analysis()
+    drafts = build_drafts(c, reviews, config.identity(), profile, cv_analysis)
     for variant, text in drafts.items():
         console.print(Panel(text, title=f"{c.name} — {variant}", border_style="cyan"))
     ApplicationRepository(conn).save_draft(c.id, drafts["formal"])
