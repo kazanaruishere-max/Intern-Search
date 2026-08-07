@@ -75,8 +75,10 @@ def export_shortlist_xlsx(
     profiles_by_id: dict[int, object],
     drafts_by_company: dict[str, dict[str, str]],
     path: str | Path,
+    notes_by_id: dict[int, str] | None = None,
 ) -> None:
     """Buat shortlist.xlsx: 3 sheet (Shortlist / Profil & Tentang / Draft Pesan)."""
+    notes_by_id = notes_by_id or {}
     wb = Workbook()
 
     # ---------------- Sheet 1: Shortlist ----------------
@@ -85,7 +87,7 @@ def export_shortlist_xlsx(
     headers = [
         "No", "Nama Perusahaan", "Fit-CV", "AI", "Rating", "Ulasan", "Jarak (km)",
         "Kategori", "Role", "Sektor", "Alamat", "Telepon", "Website", "Email",
-        "Halaman Karir", "Fokus", "Status",
+        "Halaman Karir", "Fokus", "Catatan", "Status",
     ]
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
     title_cell = ws.cell(row=1, column=1, value="SHORTLIST CV-MATCH — Perusahaan IT Jakarta Selatan")
@@ -129,6 +131,7 @@ def export_shortlist_xlsx(
             ", ".join(profile.emails) if profile and profile.emails else "",
             "ya" if profile and profile.career_page_found else "",
             (profile.core_focus or "") if profile else "",
+            notes_by_id.get(company.id, ""),
             "",
         ]
         for col, value in enumerate(values, start=1):
@@ -144,7 +147,7 @@ def export_shortlist_xlsx(
             ws.cell(row=row, column=5).fill = FILL_RATING
         ws.cell(row=row, column=7).fill = _distance_fill(company.distance_km)
 
-    _set_widths(ws, [5, 34, 8, 22, 8, 8, 9, 20, 14, 9, 40, 16, 26, 24, 10, 45, 10])
+    _set_widths(ws, [5, 34, 8, 22, 8, 8, 9, 20, 14, 9, 40, 16, 26, 24, 10, 45, 60, 10])
     ws.freeze_panes = f"A{header_row + 1}"
     ws.auto_filter.ref = f"A{header_row}:{get_column_letter(len(headers))}{header_row + len(items)}"
     for col in (6, 10):

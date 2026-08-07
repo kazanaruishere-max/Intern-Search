@@ -38,6 +38,7 @@ from pkl_research.scraper.search import collect_candidates
 from pkl_research.scraper.website import is_real_website, scrape_website
 from pkl_research.sector import classify_sector
 from pkl_research.shortlist import build_shortlist
+from pkl_research.notes import combine_note
 from pkl_research.xlsx_export import export_shortlist_xlsx
 
 console = Console(legacy_windows=False)
@@ -448,6 +449,17 @@ def shortlist(
         )
 
     profiles_by_id = {p.company_id: p for p, _ in profile_repo.list_with_company()}
+    app_notes = {
+        app.company_id: app.notes
+        for app, _ in ApplicationRepository(conn).list()
+    }
+    notes_by_id: dict[int, str] = {}
+    for company, _, _ in items:
+        profile = profiles_by_id.get(company.id)
+        reviews = review_repo.list_by_company(company.id) if company.id else []
+        notes_by_id[company.id] = combine_note(
+            company, profile, reviews, app_notes.get(company.id)
+        )
 
     table = Table(title=f"Shortlist ({len(items)})")
     for col in ("Nama", "Fit", "AI", "Rating", "Ulasan", "Jarak", "Role"):
@@ -465,7 +477,7 @@ def shortlist(
     console.print(table)
 
     config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    shortlist_markdown(items, profiles_by_id, config.OUTPUT_DIR / "shortlist.md")
+    shortlist_markdown(items, profiles_by_id, config.OUTPUT_DIR / "shortlist.md", notes_by_id)
 
     identity = config.identity()
     drafts: dict[str, dict[str, str]] = {}
@@ -479,6 +491,7 @@ def shortlist(
         profiles_by_id,
         drafts,
         config.OUTPUT_DIR / "shortlist.xlsx",
+        notes_by_id,
     )
 
     console.print("[green]File dibuat:[/green]")
