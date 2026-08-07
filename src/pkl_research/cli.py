@@ -455,6 +455,10 @@ def shortlist(
         app.company_id: app.notes
         for app, _ in ApplicationRepository(conn).list()
     }
+    app_status = {
+        app.company_id: app.status
+        for app, _ in ApplicationRepository(conn).list()
+    }
     notes_by_id: dict[int, str] = {}
     for company, _, _ in items:
         profile = profiles_by_id.get(company.id)
@@ -479,7 +483,13 @@ def shortlist(
     console.print(table)
 
     config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    shortlist_markdown(items, profiles_by_id, config.OUTPUT_DIR / "shortlist.md", notes_by_id)
+    shortlist_markdown(
+        items,
+        profiles_by_id,
+        config.OUTPUT_DIR / "shortlist.md",
+        notes_by_id,
+        app_status,
+    )
 
     identity = config.identity()
     drafts: dict[str, dict[str, str]] = {}
@@ -494,6 +504,7 @@ def shortlist(
         drafts,
         config.OUTPUT_DIR / "shortlist.xlsx",
         notes_by_id,
+        app_status,
     )
 
     console.print("[green]File dibuat:[/green]")

@@ -76,9 +76,11 @@ def export_shortlist_xlsx(
     drafts_by_company: dict[str, dict[str, str]],
     path: str | Path,
     notes_by_id: dict[int, str] | None = None,
+    status_by_id: dict[int, str] | None = None,
 ) -> None:
     """Buat shortlist.xlsx: 3 sheet (Shortlist / Profil & Tentang / Draft Pesan)."""
     notes_by_id = notes_by_id or {}
+    status_by_id = status_by_id or {}
     wb = Workbook()
 
     # ---------------- Sheet 1: Shortlist ----------------
@@ -133,7 +135,7 @@ def export_shortlist_xlsx(
             (profile.linkedin_url or "") if profile and profile.linkedin_url else "",
             (profile.core_focus or "") if profile else "",
             notes_by_id.get(company.id, ""),
-            "",
+            status_by_id.get(company.id, ""),
         ]
         for col, value in enumerate(values, start=1):
             cell = ws.cell(row=row, column=col, value=value)

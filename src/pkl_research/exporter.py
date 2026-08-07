@@ -150,9 +150,11 @@ def shortlist_markdown(
     profiles_by_id: dict[int, object],
     path: str | Path,
     notes_by_id: dict[int, str] | None = None,
+    status_by_id: dict[int, str] | None = None,
 ) -> None:
     """Laporan mendalam kandidat shortlist (profil + tentang + AI + fit + jarak)."""
     notes_by_id = notes_by_id or {}
+    status_by_id = status_by_id or {}
     lines = [
         "# Shortlist CV-Match — Perusahaan IT Jakarta Selatan",
         "",
@@ -171,6 +173,9 @@ def shortlist_markdown(
             f"- Role: {', '.join(company.role_fit) or '-'} | "
             f"Sektor: {company.sector or '-'} | Website: {company.website or '-'}"
         )
+        status = status_by_id.get(company.id)
+        if status:
+            lines.append(f"- **Status lamaran**: {status}")
         note = notes_by_id.get(company.id)
         if note:
             lines.append(f"- **Catatan**: {note}")
