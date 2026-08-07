@@ -192,6 +192,7 @@ class CompanyProfile:
     social: list[str] = field(default_factory=list)
     linkedin_url: str | None = None
     linkedin_label: str | None = None
+    whatsapp: str | None = None
     tech_stack: list[str] = field(default_factory=list)
     keywords: list[str] = field(default_factory=list)
     fetch_status: str = "pending"

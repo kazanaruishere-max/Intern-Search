@@ -182,6 +182,8 @@ def shortlist_markdown(
         if profile and profile.linkedin_url:
             label = profile.linkedin_label or "linkedin"
             lines.append(f"- **LinkedIn**: {profile.linkedin_url} ({label})")
+        if profile and profile.whatsapp:
+            lines.append(f"- **WhatsApp**: {profile.whatsapp}")
         if profile and profile.ai_focus:
             lines.append(
                 f"- **AI: {' / '.join(profile.ai_subfields)}**"

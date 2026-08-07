@@ -88,8 +88,8 @@ def export_shortlist_xlsx(
     ws.title = "Shortlist"
     headers = [
         "No", "Nama Perusahaan", "Fit-CV", "AI", "Rating", "Ulasan", "Jarak (km)",
-        "Kategori", "Role", "Sektor", "Alamat", "Telepon", "Website", "Email",
-        "Halaman Karir", "LinkedIn", "Fokus", "Catatan", "Status",
+        "Kategori", "Role", "Sektor", "Alamat", "Telepon", "WhatsApp", "Website",
+        "Email", "Halaman Karir", "LinkedIn", "Fokus", "Catatan", "Status",
     ]
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
     title_cell = ws.cell(row=1, column=1, value="SHORTLIST CV-MATCH — Perusahaan IT Jakarta Selatan")
@@ -129,6 +129,7 @@ def export_shortlist_xlsx(
             company.sector or "",
             company.address or "",
             company.phone or "",
+            (profile.whatsapp or "") if profile and profile.whatsapp else "",
             company.website or "",
             ", ".join(profile.emails) if profile and profile.emails else "",
             "ya" if profile and profile.career_page_found else "",
@@ -150,7 +151,7 @@ def export_shortlist_xlsx(
             ws.cell(row=row, column=5).fill = FILL_RATING
         ws.cell(row=row, column=7).fill = _distance_fill(company.distance_km)
 
-    _set_widths(ws, [5, 34, 8, 22, 8, 8, 9, 20, 14, 9, 40, 16, 26, 24, 10, 38, 45, 60, 10])
+    _set_widths(ws, [5, 34, 8, 22, 8, 8, 9, 20, 14, 9, 40, 16, 20, 26, 24, 10, 38, 45, 60, 10])
     ws.freeze_panes = f"A{header_row + 1}"
     ws.auto_filter.ref = f"A{header_row}:{get_column_letter(len(headers))}{header_row + len(items)}"
     for col in (6, 10):

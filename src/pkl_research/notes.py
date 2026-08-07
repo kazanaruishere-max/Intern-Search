@@ -75,6 +75,9 @@ def auto_notes(
         label = profile.linkedin_label or "linkedin"
         notes.append(f"LinkedIn: {profile.linkedin_url} ({label})")
 
+    if profile and profile.whatsapp:
+        notes.append(f"WhatsApp: {profile.whatsapp}")
+
     if profile and profile.core_focus:
         notes.append(f"Fokus: {_one_line(profile.core_focus, 90)}")
 

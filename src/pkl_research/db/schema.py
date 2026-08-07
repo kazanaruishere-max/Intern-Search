@@ -114,6 +114,10 @@ MIGRATIONS: list[str] = [
     ALTER TABLE company_profiles ADD COLUMN linkedin_url TEXT;
     ALTER TABLE company_profiles ADD COLUMN linkedin_label TEXT;
     """,
+    # v5: kontak WhatsApp
+    """
+    ALTER TABLE company_profiles ADD COLUMN whatsapp TEXT;
+    """,
 ]
 
 

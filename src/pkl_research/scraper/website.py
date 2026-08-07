@@ -123,6 +123,39 @@ def _find_emails(texts: list[str]) -> list[str]:
     return emails[:6]
 
 
+def phone_to_wa(phone: str | None) -> str | None:
+    """Konversi nomor telepon seluler 08xx/628x ke nomor WhatsApp (62...)."""
+    digits = re.sub(r"\D", "", phone or "")
+    if digits.startswith("08") and len(digits) >= 9:
+        return "62" + digits[1:]
+    if digits.startswith("628") and len(digits) >= 10:
+        return digits
+    return None
+
+
+def _extract_whatsapp(page: Page, base_url: str) -> str | None:
+    """Cari kontak WhatsApp dari link wa.me / api.whatsapp.com."""
+    number: str | None = None
+    fallback: str | None = None
+    for link in _collect_all_links(page, base_url):
+        low = link.lower()
+        if "wa.me/" in low:
+            path = urlparse(link).path.lstrip("/").split("?")[0]
+            if path.startswith("message/"):
+                if fallback is None:
+                    fallback = link.split("?")[0]
+            else:
+                digits = re.sub(r"\D", "", path)
+                if digits.startswith("62") and len(digits) >= 10:
+                    number = digits
+                elif fallback is None:
+                    fallback = link.split("?")[0]
+        elif "api.whatsapp.com/send" in low or "whatsapp.com" in low:
+            if fallback is None:
+                fallback = link.split("?")[0]
+    return number or fallback
+
+
 def _find_social(links: set[str]) -> list[str]:
     social: list[str] = []
     for link in sorted(links):
@@ -212,6 +245,7 @@ def scrape_website(page: Page, url: str, max_pages: int = 3) -> dict[str, object
         "social": [],
         "linkedin": None,
         "linkedin_label": None,
+        "whatsapp": None,
         "pages": [],
     }
 
@@ -246,6 +280,7 @@ def scrape_website(page: Page, url: str, max_pages: int = 3) -> dict[str, object
     linkedin_url, linkedin_label_value = _extract_linkedin(page, url)
     result["linkedin"] = linkedin_url
     result["linkedin_label"] = linkedin_label_value
+    result["whatsapp"] = _extract_whatsapp(page, url)
 
     about = _pick_link(links, ABOUT_PATHS)
     career = _pick_link(links, CAREER_PATHS)

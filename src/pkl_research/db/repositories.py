@@ -21,8 +21,9 @@ PROFILE_COLUMNS = [
     "company_id", "website_url", "site_title", "meta_description", "core_focus",
     "about_text", "services_text", "career_page_found", "career_url",
     "career_snippet", "ai_focus", "ai_subfields", "ai_keywords", "ai_evidence",
-    "emails", "social", "linkedin_url", "linkedin_label", "tech_stack",
-    "keywords", "fetch_status", "fetched_at", "created_at", "updated_at",
+    "emails", "social", "linkedin_url", "linkedin_label", "whatsapp",
+    "tech_stack", "keywords", "fetch_status", "fetched_at", "created_at",
+    "updated_at",
 ]
 
 APPLICATION_COLUMNS = [
@@ -398,6 +399,7 @@ class CompanyProfileRepository:
             "social": _json(profile.social),
             "linkedin_url": profile.linkedin_url,
             "linkedin_label": profile.linkedin_label,
+            "whatsapp": profile.whatsapp,
             "tech_stack": _json(profile.tech_stack),
             "keywords": _json(profile.keywords),
             "fetch_status": profile.fetch_status,

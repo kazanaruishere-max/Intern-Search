@@ -35,7 +35,7 @@ from pkl_research.scraper.browser import BrowserSession, human_delay
 from pkl_research.scraper.detail import apply_detail, scrape_detail
 from pkl_research.scraper.reviews import open_reviews, parse_reviews, scroll_reviews
 from pkl_research.scraper.search import collect_candidates
-from pkl_research.scraper.website import is_real_website, scrape_website
+from pkl_research.scraper.website import is_real_website, phone_to_wa, scrape_website
 from pkl_research.sector import classify_sector
 from pkl_research.shortlist import build_shortlist
 from pkl_research.notes import combine_note
@@ -304,6 +304,12 @@ def _scan_website_profile(page, company, profile_repo) -> dict[str, object]:
         *(str(p) for p in pages),
     ]
     detection = detect_ai(texts)
+
+    whatsapp = raw.get("whatsapp")
+    if not whatsapp or "whatsapp.com/send" in str(whatsapp):
+        wa_number = phone_to_wa(company.phone)
+        if wa_number:
+            whatsapp = wa_number
     profile_repo.upsert(
         CompanyProfile(
             company_id=company.id,
@@ -324,6 +330,7 @@ def _scan_website_profile(page, company, profile_repo) -> dict[str, object]:
             social=raw.get("social"),
             linkedin_url=raw.get("linkedin") or None,
             linkedin_label=raw.get("linkedin_label") or None,
+            whatsapp=whatsapp,
             fetch_status="ok",
             fetched_at=now,
             created_at=now,
