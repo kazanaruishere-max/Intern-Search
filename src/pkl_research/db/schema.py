@@ -109,6 +109,11 @@ MIGRATIONS: list[str] = [
     """
     ALTER TABLE companies ADD COLUMN fit_score REAL;
     """,
+    # v4: URL LinkedIn perusahaan
+    """
+    ALTER TABLE company_profiles ADD COLUMN linkedin_url TEXT;
+    ALTER TABLE company_profiles ADD COLUMN linkedin_label TEXT;
+    """,
 ]
 
 

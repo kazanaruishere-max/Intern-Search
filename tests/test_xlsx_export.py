@@ -41,7 +41,7 @@ def test_shortlist_header_and_rows(tmp_path):
     assert ws.cell(row=4, column=2).value == "Nama Perusahaan"
     assert ws.cell(row=5, column=2).value == "PT Alpha"
     assert ws.cell(row=6, column=2).value == "PT Beta"
-    assert "AI dan machine learning" in str(ws.cell(row=5, column=16).value)
+    assert "AI dan machine learning" in str(ws.cell(row=5, column=17).value)
     # fit score & jarak ikut terisi
     assert ws.cell(row=5, column=3).value == 100.0
     assert ws.cell(row=5, column=7).value == 2.0

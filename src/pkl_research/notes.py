@@ -71,6 +71,10 @@ def auto_notes(
     if profile and profile.emails:
         notes.append(f"Email kontak: {', '.join(profile.emails[:2])}")
 
+    if profile and profile.linkedin_url:
+        label = profile.linkedin_label or "linkedin"
+        notes.append(f"LinkedIn: {profile.linkedin_url} ({label})")
+
     if profile and profile.core_focus:
         notes.append(f"Fokus: {_one_line(profile.core_focus, 90)}")
 

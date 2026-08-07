@@ -190,6 +190,8 @@ class CompanyProfile:
     ai_evidence: list[str] = field(default_factory=list)
     emails: list[str] = field(default_factory=list)
     social: list[str] = field(default_factory=list)
+    linkedin_url: str | None = None
+    linkedin_label: str | None = None
     tech_stack: list[str] = field(default_factory=list)
     keywords: list[str] = field(default_factory=list)
     fetch_status: str = "pending"

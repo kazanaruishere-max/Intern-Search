@@ -78,11 +78,11 @@ def _visible_text(page: Page) -> str:
         return ""
 
 
-def _collect_links(page: Page, base_url: str) -> set[str]:
+def _collect_all_links(page: Page, base_url: str) -> set[str]:
+    """Semua anchor absolut (termasuk link eksternal/sosmed)."""
     links: set[str] = set()
-    base_host = (urlparse(base_url).hostname or "").lower()
     anchors = page.locator("a[href]")
-    for i in range(min(anchors.count(), 200)):
+    for i in range(min(anchors.count(), 300)):
         try:
             href = anchors.nth(i).get_attribute("href")
         except Exception:
@@ -90,10 +90,19 @@ def _collect_links(page: Page, base_url: str) -> set[str]:
         if not href:
             continue
         absolute = urljoin(base_url, href)
-        host = (urlparse(absolute).hostname or "").lower()
-        if host == base_host:
+        if urlparse(absolute).hostname:
             links.add(absolute)
     return links
+
+
+def _collect_links(page: Page, base_url: str) -> set[str]:
+    """Hanya link sesama host (untuk deteksi halaman internal)."""
+    base_host = (urlparse(base_url).hostname or "").lower()
+    return {
+        link
+        for link in _collect_all_links(page, base_url)
+        if (urlparse(link).hostname or "").lower() == base_host
+    }
 
 
 def _pick_link(links: set[str], pattern: re.Pattern[str]) -> str | None:
@@ -121,6 +130,55 @@ def _find_social(links: set[str]) -> list[str]:
         if any(bad in host for bad in SOCIAL_HOSTS) and link not in social:
             social.append(link)
     return social[:8]
+
+
+def linkedin_label(url: str) -> str:
+    """Klasifikasi jenis LinkedIn dari path URL."""
+    path = (urlparse(url).path or "").lower()
+    if "/company/" in path or "/organizations/" in path:
+        return "company"
+    if "/school/" in path:
+        return "school"
+    if "/in/" in path:
+        return "profil pribadi"
+    if "/company" == path.rstrip("/"):
+        return "company"
+    return "linkedin"
+
+
+def _extract_linkedin(page: Page, base_url: str) -> tuple[str | None, str | None]:
+    """Cari URL LinkedIn dari anchor + JSON-LD sameAs + og:link."""
+    candidates: set[str] = set()
+    good_path = re.compile(r"/(company|in|school|organizations)(/|$)", re.IGNORECASE)
+
+    def _accept(url: str) -> bool:
+        return bool(good_path.search(urlparse(url).path or ""))
+
+    for link in _collect_all_links(page, base_url):
+        host = (urlparse(link).hostname or "").lower()
+        if "linkedin.com" in host and _accept(link):
+            candidates.add(link.split("?")[0].rstrip("/"))
+
+    scripts = page.locator("script[type='application/ld+json']")
+    for i in range(scripts.count()):
+        try:
+            raw = (scripts.nth(i).inner_text() or "").replace("\\/", "/")
+        except Exception:
+            continue
+        for url in re.findall(r"https?://[^\"\s\\]*linkedin\.com[^\"\s\\]*", raw):
+            if _accept(url):
+                candidates.add(url.split("?")[0].rstrip("/"))
+
+    og = page.locator('meta[property="og:link"]').first
+    if og.count():
+        content = og.get_attribute("content")
+        if content and "linkedin.com" in content and _accept(content):
+            candidates.add(content.split("?")[0].rstrip("/"))
+
+    if not candidates:
+        return None, None
+    best = sorted(candidates)[0]
+    return best, linkedin_label(best)
 
 
 def _headings(page: Page) -> list[str]:
@@ -152,6 +210,8 @@ def scrape_website(page: Page, url: str, max_pages: int = 3) -> dict[str, object
         "career_snippet": None,
         "emails": [],
         "social": [],
+        "linkedin": None,
+        "linkedin_label": None,
         "pages": [],
     }
 
@@ -179,9 +239,13 @@ def scrape_website(page: Page, url: str, max_pages: int = 3) -> dict[str, object
     else:
         result["core_focus"] = (result["site_title"] or "")[:200] or None
 
+    all_links = _collect_all_links(page, url)
     links = _collect_links(page, url)
     result["emails"] = _find_emails(result["pages"] + [result["meta_description"] or ""])
-    result["social"] = _find_social(links)
+    result["social"] = _find_social(all_links)
+    linkedin_url, linkedin_label_value = _extract_linkedin(page, url)
+    result["linkedin"] = linkedin_url
+    result["linkedin_label"] = linkedin_label_value
 
     about = _pick_link(links, ABOUT_PATHS)
     career = _pick_link(links, CAREER_PATHS)

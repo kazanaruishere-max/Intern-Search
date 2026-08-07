@@ -322,6 +322,8 @@ def _scan_website_profile(page, company, profile_repo) -> dict[str, object]:
             ai_evidence=detection.evidence,
             emails=raw.get("emails"),
             social=raw.get("social"),
+            linkedin_url=raw.get("linkedin") or None,
+            linkedin_label=raw.get("linkedin_label") or None,
             fetch_status="ok",
             fetched_at=now,
             created_at=now,

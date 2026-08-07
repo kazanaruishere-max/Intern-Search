@@ -174,6 +174,9 @@ def shortlist_markdown(
         note = notes_by_id.get(company.id)
         if note:
             lines.append(f"- **Catatan**: {note}")
+        if profile and profile.linkedin_url:
+            label = profile.linkedin_label or "linkedin"
+            lines.append(f"- **LinkedIn**: {profile.linkedin_url} ({label})")
         if profile and profile.ai_focus:
             lines.append(
                 f"- **AI: {' / '.join(profile.ai_subfields)}**"
