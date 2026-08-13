@@ -63,6 +63,15 @@ QUERIES_BY_ROLE: dict[str, list[str]] = {
         "artificial intelligence company",
         "AI startup",
         "machine learning company",
+        "AI development",
+        "ai developer",
+        "ai company",
+        "perusahaan kecerdasan buatan",
+        "data science company",
+        "computer vision company",
+        "machine learning jakarta selatan",
+        "chatbot company",
+        "startup teknologi",
     ],
     "fullstack": [
         "web development",
@@ -149,7 +158,12 @@ def home_location() -> dict[str, float] | None:
         return {
             "lat": float(lat),
             "lon": float(lon),
-            "max_distance_km": float(os.getenv("MAX_DISTANCE_KM", "5.0")),
+            "max_distance_km": float(os.getenv("MAX_DISTANCE_KM", "8.0")),
         }
     except ValueError:
         return None
+
+
+def camofox_api() -> str | None:
+    """URL REST API Camofox (opsional). Kosong = pakai Playwright."""
+    return os.getenv("CAMOFOX_API", "").strip() or None

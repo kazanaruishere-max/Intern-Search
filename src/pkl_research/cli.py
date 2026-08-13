@@ -31,7 +31,8 @@ from pkl_research.exporter import (
 from pkl_research.filters import evaluate_candidate
 from pkl_research.messaging import build_drafts
 from pkl_research.models import Company, CompanyProfile, Review
-from pkl_research.scraper.browser import BrowserSession, human_delay
+from pkl_research.scraper.backend import open_browser_session, resolve_backend
+from pkl_research.scraper.browser import human_delay
 from pkl_research.scraper.detail import apply_detail, scrape_detail
 from pkl_research.scraper.reviews import open_reviews, parse_reviews, scroll_reviews
 from pkl_research.scraper.search import collect_candidates
@@ -176,6 +177,11 @@ def db_stats() -> None:
 @app.command()
 def search(
     headless: bool = typer.Option(False, "--headless", help="Jalankan tanpa jendela browser"),
+    backend: str = typer.Option(
+        "auto",
+        "--backend",
+        help="playwright|camofox|auto (Camofox butuh CAMOFOX_API; default Playwright)",
+    ),
 ) -> None:
     """Scan kandidat perusahaan IT di Jakarta Selatan → simpan ke DB."""
     conn = _connect()
@@ -187,15 +193,28 @@ def search(
             "[yellow]HOME_LAT/HOME_LON/MAX_DISTANCE_KM belum diset — "
             "filter jarak dari rumah dilewati. Set env untuk hasil terbaik.[/yellow]"
         )
+    else:
+        console.print(
+            f"Lokasi rumah: {home['lat']}, {home['lon']} | max {home['max_distance_km']} km"
+        )
 
     queries = [
         f"{q} {config.QUERY_SUFFIX}"
-        for qs in config.QUERIES_BY_ROLE.values()
+        for role, qs in config.QUERIES_BY_ROLE.items()
         for q in qs
+        # AI-first: query AI digandakan di depan list
+        if True
     ]
-    console.print(f"Menjalankan {len(queries)} query...")
+    # AI queries first for expand coverage
+    ai_first = [
+        f"{q} {config.QUERY_SUFFIX}" for q in config.QUERIES_BY_ROLE.get("ai", [])
+    ]
+    rest = [q for q in queries if q not in ai_first]
+    queries = ai_first + rest
+    chosen = resolve_backend(backend)
+    console.print(f"Backend: {chosen} | Menjalankan {len(queries)} query...")
 
-    with BrowserSession(config.USER_DATA_DIR, headless=headless) as ctx:
+    with open_browser_session(backend=backend, headless=headless) as ctx:
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         candidates = collect_candidates(page, queries, config.CENTER_JAKSEL)
 
@@ -225,6 +244,7 @@ def details(
     max_reviews: int = typer.Option(config.DEFAULT_MAX_REVIEWS, help="Maks review per perusahaan"),
     headless: bool = typer.Option(False, "--headless", help="Tanpa jendela browser"),
     limit: int | None = typer.Option(None, help="Batasi jumlah perusahaan (debug)"),
+    backend: str = typer.Option("auto", "--backend", help="playwright|camofox|auto"),
 ) -> None:
     """Enrich detail kandidat: kontak, foto, dan review."""
     conn = _connect()
@@ -240,7 +260,7 @@ def details(
         companies = companies[:limit]
     console.print(f"Perusahaan akan di-enrich: {len(companies)}")
 
-    with BrowserSession(config.USER_DATA_DIR, headless=headless) as ctx:
+    with open_browser_session(backend=backend, headless=headless) as ctx:
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         for idx, c in enumerate(companies, start=1):
             console.print(f"[{idx}/{len(companies)}] {c.name}...", end=" ")
@@ -350,6 +370,7 @@ def profile(
     headless: bool = typer.Option(False, "--headless", help="Tanpa jendela browser"),
     force: bool = typer.Option(False, "--force", help="Scan ulang semua, abaikan yang sudah"),
     limit: int | None = typer.Option(None, help="Batasi jumlah (debug)"),
+    backend: str = typer.Option("auto", "--backend", help="playwright|camofox|auto"),
 ) -> None:
     """Kunjungi website perusahaan qualified → simpan profil (fokus, tentang, AI)."""
     conn = _connect()
@@ -372,7 +393,7 @@ def profile(
         f"| akan discan: {len(targets)}"
     )
 
-    with BrowserSession(config.USER_DATA_DIR, headless=headless) as ctx:
+    with open_browser_session(backend=backend, headless=headless) as ctx:
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         for idx, c in enumerate(targets, start=1):
             console.print(f"[{idx}/{len(targets)}] {c.name}...", end=" ")
@@ -392,7 +413,7 @@ def profile(
 
 @app.command()
 def shortlist(
-    max_km: float = typer.Option(6.0, "--max-km", help="Jarak maksimal dari rumah"),
+    max_km: float = typer.Option(8.0, "--max-km", help="Jarak maksimal dari rumah"),
     min_fit: float = typer.Option(70.0, "--min-fit", help="Minimal fit score CV"),
     min_ulasan: int = typer.Option(10, "--min-ulasan", help="Minimal jumlah ulasan"),
     min_rating: float = typer.Option(4.5, "--min-rating", help="Minimal rating"),
@@ -400,6 +421,7 @@ def shortlist(
     scan_websites: bool = typer.Option(True, "--scan/--no-scan", help="Scan website kandidat"),
     force: bool = typer.Option(False, "--force", help="Scan ulang semua website"),
     top_drafts: int = typer.Option(10, "--top-drafts", help="Jumlah draft yang dibuat"),
+    backend: str = typer.Option("auto", "--backend", help="playwright|camofox|auto"),
 ) -> None:
     """Shortlist CV-match: IT + Jakarta Selatan + dekat rumah + fit CV → profil mendalam + draft."""
     analysis = _load_cv_analysis()
@@ -439,7 +461,7 @@ def shortlist(
             if is_real_website(c.website) and (force or c.id not in done)
         ]
         console.print(f"Menscan website {len(targets)} kandidat...")
-        with BrowserSession(config.USER_DATA_DIR, headless=headless) as ctx:
+        with open_browser_session(backend=backend, headless=headless) as ctx:
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
             for idx, c in enumerate(targets, start=1):
                 console.print(f"[{idx}/{len(targets)}] {c.name}...", end=" ")

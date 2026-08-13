@@ -32,7 +32,7 @@ def build_shortlist(
     companies: list[object],
     analysis: dict,
     *,
-    max_km: float = 6.0,
+    max_km: float = 8.0,
     min_fit: float = 70.0,
     min_ulasan: int = 10,
     min_rating: float = 4.5,

@@ -3,7 +3,8 @@
 Tool CLI **semi-otomatis** untuk riset perusahaan IT di sekitar Jakarta Selatan dalam rangka lamaran **Praktik Kerja Lapangan (PKL)**.
 
 - Scrape perusahaan IT dari **Google Maps** (rating, ulasan, foto, kontak, koordinat).
-- **Filter otomatis**: rating ≥ 4.5, jumlah ulasan ≥ 10, dalam DKI Jakarta, dan jarak dari rumah ≤ `MAX_DISTANCE_KM`.
+- **Backend browser bisa dipilih**: `--backend playwright|camofox|auto` — Camofox anti-detect bila `CAMOFOX_API` terisi, default Playwright.
+- **Filter otomatis**: rating ≥ 4.5, jumlah ulasan ≥ 10, dalam DKI Jakarta, dan jarak dari rumah ≤ `MAX_DISTANCE_KM` (default 8 km).
 - **Tag peran**: software / AI / fullstack / game.
 - **Klasifikasi sektor**: swasta / negeri / bumn (dari nama, kategori, dan domain `.go.id`).
 - **Profil perusahaan dari website**: kunjungi website, ambil inti fokus (meta/heading), halaman tentang, layanan, halaman karir, email, sosmed — plus **deteksi unsur AI** (AI Development, Machine Learning, Chatbot, dsb) dengan bukti kutipan.
@@ -34,8 +35,11 @@ uv run playwright install chromium
 # 1. Buat database
 uv run pkl-research db init
 
-# 2. Kumpulkan kandidat (scan 16 query, simpan ke DB)
+# 2. Kumpulkan kandidat (scan query AI-first + IT di Jaksel, ~25 query)
 uv run pkl-research search --headless
+
+#    Opsional backend Camofox (anti-detect): isi CAMOFOX_API di .env, lalu
+uv run pkl-research search --headless --backend camofox
 
 # 3. Enrich kandidat IT: kontak, foto, review (bisa lama ~15 detik/company)
 uv run pkl-research details --scope it --headless
