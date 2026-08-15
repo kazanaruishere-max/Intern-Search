@@ -52,6 +52,16 @@ NON_DEV_CATEGORY_KEYWORDS = [
     "kursus", "pelatihan", "academy", "percetakan", "cetak", "printing",
     "logo", "fotografi", "event organizer", "humas", "public relations",
 ]
+# Keyword di NAMA perusahaan yang menandakan bukan software dev
+# (diutamakan kata majemuk/kuat, hindari "desain" polos yang bisa "desain web").
+NON_DEV_NAME_KEYWORDS = [
+    "gym", "fitness", "muay thai", "yoga", "boxing", "salon", "spa", "kafe",
+    "restoran", "kursus", "bimbel", "percetakan", "cetak digital", "fotografi",
+    "studio foto", "branding", "penjenamaan", "agensi desain", "jasa desain",
+    "desain grafis", "desain logo", "pemasaran", "marketing", "event",
+    "undangan", "karikatur", "sablon", "kaos", "plakat", "agensi iklan",
+    "advertising agency", "humas", "public relation",
+]
 # Sinyal kategori yang TETAP dianggap dev (override NON_DEV).
 DEV_CATEGORY_SIGNALS = [
     "software", "web", "aplikasi", "developer", "development", "programming",

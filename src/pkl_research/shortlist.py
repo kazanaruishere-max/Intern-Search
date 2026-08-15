@@ -16,9 +16,12 @@ JAKSEL_BBOX = {
 
 
 def is_non_dev(name: str | None, category: str | None) -> bool:
-    """True bila kategori perusahaan jelas bukan software development
-    (desain/branding/marketing/kursus/percetakan), kecuali ada sinyal dev."""
+    """True bila perusahaan jelas bukan software development
+    (gym/desain/branding/marketing/kursus/percetakan), baik dari nama maupun kategori."""
     cat = (category or "").lower()
+    nm = (name or "").lower()
+    if any(kw in nm for kw in config.NON_DEV_NAME_KEYWORDS):
+        return True
     if any(sig in cat for sig in config.DEV_CATEGORY_SIGNALS):
         return False
     return any(kw in cat for kw in config.NON_DEV_CATEGORY_KEYWORDS)
