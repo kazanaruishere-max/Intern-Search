@@ -45,6 +45,19 @@ TARGET_MIN_REVIEWS = 100
 
 SECTORS = ["swasta", "negeri", "bumn", "unknown"]
 
+# Kategori Google Maps yang BUKAN perusahaan software development (di luar konteks PKL dev).
+NON_DEV_CATEGORY_KEYWORDS = [
+    "penjenamaan", "branding", "agensi desain", "desain grafis", "desain",
+    "pemasaran", "marketing", "advertising", "iklan", "media promosi",
+    "kursus", "pelatihan", "academy", "percetakan", "cetak", "printing",
+    "logo", "fotografi", "event organizer", "humas", "public relations",
+]
+# Sinyal kategori yang TETAP dianggap dev (override NON_DEV).
+DEV_CATEGORY_SIGNALS = [
+    "software", "web", "aplikasi", "developer", "development", "programming",
+    "teknologi", "it ", "pengembang", "sistem informasi",
+]
+
 DEFAULT_MAX_REVIEWS = 20
 MAX_REVIEWS = 100
 MAX_PHOTOS = 20
@@ -79,11 +92,22 @@ QUERIES_BY_ROLE: dict[str, list[str]] = {
         "pengembang aplikasi",
         "it consultant",
         "digital agency",
+        "backend developer",
+        "frontend developer",
+        "fullstack agency",
+        "jasa pembuatan website",
+        "pembuatan aplikasi web",
+        "web agency",
+        "web design company",
     ],
     "game": [
         "game developer",
         "game studio",
         "perusahaan game",
+        "game developer indonesia",
+        "game publisher",
+        "pembuat game",
+        "studio game",
     ],
 }
 

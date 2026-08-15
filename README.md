@@ -35,7 +35,7 @@ uv run playwright install chromium
 # 1. Buat database
 uv run pkl-research db init
 
-# 2. Kumpulkan kandidat (scan query AI-first + IT di Jaksel, ~25 query)
+# 2. Kumpulkan kandidat (scan query AI-first + IT di Jaksel, ~36 query)
 uv run pkl-research search --headless
 
 #    Opsional backend Camofox (anti-detect): isi CAMOFOX_API di .env, lalu

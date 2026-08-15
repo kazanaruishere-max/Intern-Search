@@ -1,6 +1,6 @@
 from pkl_research.cv import analyze_cv
 from pkl_research.models import Company
-from pkl_research.shortlist import build_shortlist, is_jakarta_selatan
+from pkl_research.shortlist import build_shortlist, is_jakarta_selatan, is_non_dev, _norm_name
 
 AI_CV = """
 AI engineer focused on LLM tooling, machine learning, chatbots using Python, TensorFlow, ChromaDB, Gemini.
@@ -58,3 +58,40 @@ def test_ai_bonus_rank_first():
     result = build_shortlist([base, ai_company], analysis, ai_by_id={11: True})
     assert len(result) == 2
     assert result[0][0].name == "Dengan AI"
+
+
+def test_is_non_dev_drops_design_and_keeps_software():
+    assert is_non_dev("Milestone", "Agensi penjenamaan") is True
+    assert is_non_dev("Jaya Cetak Digital", "Layanan cetak digital") is True
+    assert is_non_dev("ITSTEP ACADEMY", "Kursus Komputer") is True
+    assert is_non_dev("PT Software Maju", "Perusahaan Software") is False
+    assert is_non_dev("Nectar", "Jasa pembuatan website") is False
+    assert is_non_dev("Think Web", "Desain Situs Web") is False  # sinyal "web"
+
+
+def test_build_shortlist_excludes_non_dev():
+    analysis = analyze_cv(AI_CV)
+    companies = [
+        make_company(place_id="1", name="Design Agency X", category="Agensi desain",
+                     role_fit=["ai"], rating=4.9, review_count=50, distance_km=3.0, id=1),
+        make_company(place_id="2", name="Software House Y", category="Perusahaan Software",
+                     role_fit=["ai"], rating=4.8, review_count=50, distance_km=3.0, id=2),
+    ]
+    result = build_shortlist(companies, analysis)
+    assert [c.name for c, _, _ in result] == ["Software House Y"]
+
+
+def test_dedupe_by_name_keeps_best():
+    analysis = analyze_cv(AI_CV)
+    enriched = make_company(place_id="a", name="PT Qwords Indonesia", category="Software",
+                            role_fit=["ai"], rating=4.5, review_count=157, distance_km=3.5, id=1)
+    enriched.enriched_at = "2026-08-01"
+    dup = make_company(place_id="b", name="Qwords", category="Software",
+                       role_fit=["ai"], rating=4.5, review_count=5, distance_km=3.5, id=2)
+    result = build_shortlist([dup, enriched], analysis)
+    assert len(result) == 1
+    assert result[0][0].id == 1
+
+
+def test_norm_name():
+    assert _norm_name("PT Qwords Company International") == _norm_name("Qwords Company")

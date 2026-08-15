@@ -63,9 +63,9 @@ Google Maps mengindeks **kategori perusahaan**, bukan lowongan/role. Karena itu 
 | Fokus Peran | Query pencarian (dipakai dgn akhiran "jakarta selatan", anchor `@-6.24,106.80,13z`) |
 |---|---|
 | **software** | `software house`, `perusahaan perangkat lunak`, `software development`, `it company` |
-| **ai** | `perusahaan AI`, `artificial intelligence company`, `AI startup`, `machine learning company` |
-| **fullstack** | `web development`, `perusahaan web`, `pengembang aplikasi`, `it consultant`, `digital agency` |
-| **game** (opsional) | `game developer`, `game studio`, `perusahaan game` |
+| **ai** | `perusahaan AI`, `artificial intelligence company`, `AI startup`, `machine learning company`, `AI development`, `ai developer`, `ai company`, `perusahaan kecerdasan buatan`, `data science company`, `computer vision company`, `machine learning jakarta selatan`, `chatbot company`, `startup teknologi` |
+| **fullstack** | `web development`, `perusahaan web`, `pengembang aplikasi`, `it consultant`, `digital agency`, `backend developer`, `frontend developer`, `fullstack agency`, `jasa pembuatan website`, `pembuatan aplikasi web`, `web agency`, `web design company` |
+| **game** (opsional) | `game developer`, `game studio`, `perusahaan game`, `game developer indonesia`, `game publisher`, `pembuat game`, `studio game` |
 
 - Daftar query dikelompokkan per fokus di `config.py`; semua query dijalankan saat `search`.
 - Kategori asli Google Maps **selalu disimpan** (tidak di-drop); `role_fit` hanya tag tambahan untuk filter manual.
