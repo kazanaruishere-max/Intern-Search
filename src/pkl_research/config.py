@@ -53,6 +53,33 @@ JABODETABEK_CENTERS = [
 CENTER_JAKSEL = {"lat": -6.24, "lng": 106.80, "zoom": 13}
 
 INTERN_PERIOD = "2027-01/2027-03"
+
+# Global regions (Phase A: 2 regions; Phase B+ tambah MY-KL, US-SF, dll)
+REGIONS: dict[str, dict] = {
+    "ID-Jakarta": {
+        "lat": -6.24,
+        "lng": 106.80,
+        "zoom": 13,
+        "bbox": JABODETABEK_BBOX,
+        "max_km": 15.0,
+        "lang": "id",
+        "label": "Jabodetabek",
+    },
+    "SG": {
+        "lat": 1.3521,
+        "lng": 103.8198,
+        "zoom": 12,
+        "bbox": {
+            "lat_min": 1.15,
+            "lat_max": 1.48,
+            "lon_min": 103.60,
+            "lon_max": 104.05,
+        },
+        "max_km": 20.0,
+        "lang": "en",
+        "label": "Singapore",
+    },
+}
 WFA_THRESHOLD_KM = 10.0
 MAX_SEARCH_RADIUS_KM = 15.0
 

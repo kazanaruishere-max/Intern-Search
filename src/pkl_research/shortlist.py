@@ -1,4 +1,4 @@
-"""Pembentukan shortlist CV-match: filter Jakarta Selatan + ranking (murni)."""
+"""Pembentukan shortlist CV-match: filter Jakarta Selatan / region + ranking (murni)."""
 
 from __future__ import annotations
 
@@ -6,6 +6,44 @@ import re
 
 from pkl_research import config
 from pkl_research.cv import fit_for_roles
+
+
+def is_in_region(lat: float | None, lng: float | None, bbox: dict[str, float]) -> bool:
+    return (
+        lat is not None
+        and lng is not None
+        and bbox["lat_min"] <= lat <= bbox["lat_max"]
+        and bbox["lon_min"] <= lng <= bbox["lon_max"]
+    )
+
+
+def is_jakarta_selatan(
+    address: str | None,
+    latitude: float | None,
+    longitude: float | None,
+) -> bool:
+    if address and "jakarta selatan" in address.lower():
+        return True
+    return bool(
+        latitude is not None
+        and longitude is not None
+        and JAKSEL_BBOX["lat_min"] <= latitude <= JAKSEL_BBOX["lat_max"]
+        and JAKSEL_BBOX["lon_min"] <= longitude <= JAKSEL_BBOX["lon_max"]
+    )
+
+
+def is_jakarta_selatan_v2(
+    address: str | None,
+    latitude: float | None,
+    longitude: float | None,
+    region: str = "ID-Jakarta",
+) -> bool:
+    if address and region.lower() in address.lower():
+        return True
+    bbox = config.REGIONS.get(region, {}).get("bbox") if hasattr(config, "REGIONS") else None
+    if bbox and is_in_region(latitude, longitude, bbox):
+        return True
+    return is_jakarta_selatan(address, latitude, longitude)
 
 JAKSEL_BBOX = {
     "lat_min": -6.34,
@@ -37,31 +75,16 @@ def _norm_name(name: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def is_jakarta_selatan(
-    address: str | None,
-    latitude: float | None,
-    longitude: float | None,
-) -> bool:
-    """True bila alamat mengandung 'Jakarta Selatan' atau koordinat dalam bbox-nya."""
-    if address and "jakarta selatan" in address.lower():
-        return True
-    return bool(
-        latitude is not None
-        and longitude is not None
-        and JAKSEL_BBOX["lat_min"] <= latitude <= JAKSEL_BBOX["lat_max"]
-        and JAKSEL_BBOX["lon_min"] <= longitude <= JAKSEL_BBOX["lon_max"]
-    )
-
-
 def build_shortlist(
     companies: list[object],
     analysis: dict,
     *,
-    max_km: float = 8.0,
+    max_km: float = 15.0,
     min_fit: float = 70.0,
     min_ulasan: int = 10,
     min_rating: float = 4.5,
     ai_by_id: dict[int, bool] | None = None,
+    region: str = "ID-Jakarta",
 ) -> list[tuple[object, float, bool]]:
     """Filter & ranking kandidat. Return [(company, fit_score, ai_focus), ...]."""
     ai_by_id = ai_by_id or {}
@@ -74,10 +97,11 @@ def build_shortlist(
             getattr(company, "category", None),
         ):
             continue
-        if not is_jakarta_selatan(
+        if not is_jakarta_selatan_v2(
             getattr(company, "address", None),
             getattr(company, "latitude", None),
             getattr(company, "longitude", None),
+            region=region,
         ):
             continue
         if (getattr(company, "rating", 0) or 0) < min_rating:
