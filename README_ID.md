@@ -2,6 +2,10 @@
 
 [🇬🇧 English](README.md) | [🇮🇩 Bahasa Indonesia](README_ID.md)
 
+<p align="center">
+  <img src="docs/demo.gif" alt="Intern-Search Demo" width="600"/>
+</p>
+
 > Tool pencari intern/PKL semi-otomatis dengan skor kecocokan CV, scraping multi-sumber (Google Maps / Glints / LinkedIn), auto-draft WFA untuk kandidat >10 km, dan prinsip **human-in-the-loop**.
 
 ![Python](https://img.shields.io/badge/Python-3.12%2B-blue)
