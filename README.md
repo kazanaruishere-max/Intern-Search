@@ -216,6 +216,18 @@ Banyak perusahaan IT bagus ada di luar radius nyaman komuter. Alih-alih membuang
 - Run pertama disarankan **headful** (tanpa `--headless`); kalau muncul captcha, selesaikan manual lalu lanjut headless.
 - Checkpoint/resume: perusahaan yang sudah di-enrich tidak diproses ulang (kecuali `--force`).
 
+## Troubleshooting
+
+| Masalah | Solusi |
+|---|---|
+| **CAPTCHA muncul saat scraping** | Jalankan tanpa `--headless`, selesaikan captcha manual, lanjutkan `--headless`. |
+| **Camofox error / `fetch failed`** | Pastikan server Camofox berjalan & `CAMOFOX_API` terisi di `.env`. Fallback: `--backend chrome` (Playwright). |
+| **`shortlist.xlsx` Permission denied** | File terbuka di Excel — tutup dulu, jalankan ulang. |
+| **Glints/LinkedIn return 0 hasil** | Plugin POC — situs sering ubah DOM. Cek `output/probe_*.html` untuk debug, atau gunakan `--source maps` saja. |
+| **Review tidak ter-load semua** | Naikkan `--max-reviews 50` di `details`. Default 20 cukup untuk highlight. |
+| **`fit_score` kosong** | Jalankan `cv analyze <path>` dulu, lalu `cv match`. |
+| **Draft pesan kosong/tidak ada profil_line** | Jalankan `profile --scan` untuk scan website perusahaan qualified. |
+
 ## Legal Disclaimer
 
 ⚠️ Scraping Google Maps melanggar **Terms of Service** Google. Tool ini hanya untuk **riset pribadi volume kecil** — jangan digunakan untuk scraping massal/komersial. Gunakan delay yang wajar dan patuhi rate limit. Data ulasan tetap milik penulisnya. Semua lamaran dikirim **manual oleh user** — tool tidak memiliki jalur pengiriman otomatis apa pun.
