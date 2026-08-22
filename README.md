@@ -3,7 +3,7 @@
 [🇬🇧 English](README.md) | [🇮🇩 Bahasa Indonesia](README_ID.md)
 
 <p align="center">
-  <img src="docs/demo.gif" alt="Intern-Search Demo" width="600"/>
+  <img src="docs/demo.gif" alt="Intern-Search Demo" width="250"/>
 </p>
 
 > Semi-autonomous intern/PKL search tool with CV-fit scoring, multi-source scraping (Google Maps / Glints / LinkedIn), auto-draft WFA for candidates >10 km, and a **human-in-the-loop** design.
