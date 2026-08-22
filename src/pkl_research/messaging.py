@@ -93,6 +93,14 @@ def _build_context(
         if company.distance_km is not None
         else "dekat dari domisili saya"
     )
+    wfa_threshold = config.WFA_THRESHOLD_KM
+    wfa_line = ""
+    if company.distance_km is not None and company.distance_km > wfa_threshold:
+        wfa_line = (
+            f"Mengingat jarak domisili saya di Cikoko ke kantor Anda "
+            f"~{company.distance_km:.1f} km, saya mengajukan skema Work From Anywhere/hybrid "
+            f"(onsite terjadwal + remote), tetap komitmen penuh dan siap hadir onsite saat dibutuhkan."
+        )
     kontak = identity["email"] or identity["telepon"] or "[kontak kamu]"
 
     profil_line = ""
@@ -128,6 +136,7 @@ def _build_context(
         "role": role_text(company.role_fit),
         "praise": praise,
         "jarak": jarak,
+        "wfa_line": wfa_line,
         "kontak": kontak,
         "profil_line": profil_line,
         "cv_line": cv_line,
@@ -143,6 +152,7 @@ Saya tertarik setelah melihat {perusahaan} memiliki rating {rating} dari {review
 {cv_line}
 
 Lokasi {perusahaan} juga tidak jauh dari domisili saya di Jakarta Selatan ({jarak}), sehingga saya dapat berkomitmen penuh selama PKL {durasi_pkl}.
+{wfa_line}
 
 Saya sangat antusias untuk belajar dan berkontribusi di tim Anda. Apakah berkenan jika saya mengirimkan CV dan portofolio untuk dipertimbangkan?
 
@@ -156,7 +166,7 @@ Saya {nama}, {jurusan} dari {sekolah}, lagi cari tempat PKL ({durasi_pkl}) di bi
 {profil_line}
 {cv_line}
 
-Lokasi kantornya juga dekat dari domisili saya ({jarak}), jadi mobilitas selama PKL aman. Saya pengen banget belajar sekaligus bantu-bantu tim {perusahaan}, apalagi saya lagi fokus ngembangin skill di bidang {role}.
+Lokasi kantornya juga dekat dari domisili saya ({jarak}), jadi mobilitas selama PKL aman. {wfa_line} Saya pengen banget belajar sekaligus bantu-bantu tim {perusahaan}, apalagi saya lagi fokus ngembangin skill di bidang {role}.
 
 Kalau berkenan, saya boleh kirim CV/portofolio untuk dipertimbangkan ya. Terima kasih banyak!
 
@@ -169,7 +179,7 @@ Saya {nama} ({jurusan}, {sekolah}) sedang mencari tempat PKL {durasi_pkl} di bid
 {profil_line}
 {cv_line}
 
-Domisili saya di Jakarta Selatan, dekat dengan kantor Anda ({jarak}). Boleh saya kirim CV untuk dipertimbangkan?
+Domisili saya di Jakarta Selatan, dekat dengan kantor Anda ({jarak}). {wfa_line} Boleh saya kirim CV untuk dipertimbangkan?
 
 Terima kasih,
 {nama}

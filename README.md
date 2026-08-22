@@ -1,14 +1,16 @@
-# PKL Research Tool
+# PKL Research Tool — Semi-Automated Intern/PKL Search (Jabodetabek)
 
-Tool CLI **semi-otomatis** untuk riset perusahaan IT di sekitar Jakarta Selatan dalam rangka lamaran **Praktik Kerja Lapangan (PKL)**.
+Tool CLI **semi-otomatis** untuk riset perusahaan PKL/magang IT.
 
-- Scrape perusahaan IT dari **Google Maps** (rating, ulasan, foto, kontak, koordinat).
-- **Backend browser bisa dipilih**: `--backend playwright|camofox|auto` — Camofox anti-detect bila `CAMOFOX_API` terisi, default Playwright.
-- **Filter otomatis**: rating ≥ 4.5, jumlah ulasan ≥ 10, dalam DKI Jakarta, dan jarak dari rumah ≤ `MAX_DISTANCE_KM` (default 8 km).
+> **Disarankan pakai Camofox Browser** — jauh lebih optimal & maksimal untuk scraping Maps/Glints (anti-detect, bypass rate-limit, session human-like). Tool juga support **Chrome, Brave, dan Edge**.
+
+- **Browser**: `chrome` · `camofox` · `brave` · `edge` · `--backend auto` (prefer Camofox).
+- Scrape perusahaan IT dari **Google Maps** (rating, ulasan, foto, kontak, koordinat) + *sumber Glints/LinkedIn intern* (roadmap).
+- **Filter otomatis**: rating ≥ 4.5, jumlah ulasan ≥ 10, dalam Jabodetabek, dan jarak dari rumah ≤ `MAX_DISTANCE_KM` (default 15 km).
 - **Tag peran**: software / AI / fullstack / game.
 - **Klasifikasi sektor**: swasta / negeri / bumn (dari nama, kategori, dan domain `.go.id`).
 - **Profil perusahaan dari website**: kunjungi website, ambil inti fokus (meta/heading), halaman tentang, layanan, halaman karir, email, sosmed — plus **deteksi unsur AI** (AI Development, Machine Learning, Chatbot, dsb) dengan bukti kutipan.
-- Generate **draft pesan lamaran yang dipersonalisasi** dari data, review, dan profil website.
+- Generate **draft pesan lamaran yang dipersonalisasi** — **jika jarak >10 km, otomatis WFA** (mengajukan skema Work From Anywhere/hybrid — onsite terjadwal + remote, tidak menuntut full remote).
 - **Database SQLite** untuk semua perusahaan + **tracker status lamaran** (shortlisted → applied → … → accepted).
 - **Human-in-the-loop**: tool hanya riset & menulis draft. **Tidak pernah mengirim lamaran sendiri.**
 
@@ -19,15 +21,17 @@ Tool CLI **semi-otomatis** untuk riset perusahaan IT di sekitar Jakarta Selatan 
 ```bash
 # 1. Install dependensi + browser
 uv sync
-uv run playwright install chromium
+uv run playwright install chromium  # atau chrome|brave|chromium
 
 # 2. Konfigurasi lokasi & identitas (edit file .env)
 #    - HOME_LAT, HOME_LON, MAX_DISTANCE_KM   → filter jarak dari rumah
+#    - WFA_KM                                 → ambang work-from-anywhere (>10 km)
 #    - NAMA, SEKOLAH, JURUSAN, DURASI_PKL     → pengisi draft pesan
 ```
 
+> **Disarankan Camofox Browser** untuk scraping maksimal. Isi `CAMOFOX_API` di `.env`.
 > Koordinat rumah bisa dicek di Google Maps (klik kanan pada lokasi → copy koordinat).
-> Contoh: Cikoko/Pancoran → `-6.2395, 106.8555`.
+> Contoh: Cikoko/Pancoran → `-6.2395, 106.8555`. Radius default 15 km (Jabodetabek).
 
 ## Alur pakai (cepat)
 
@@ -38,7 +42,7 @@ uv run pkl-research db init
 # 2. Kumpulkan kandidat (scan query AI-first + IT di Jaksel, ~36 query)
 uv run pkl-research search --headless
 
-#    Opsional backend Camofox (anti-detect): isi CAMOFOX_API di .env, lalu
+#    Opsional browser: --backend chrome|camofox|brave|edge (Camofox disarankan)
 uv run pkl-research search --headless --backend camofox
 
 # 3. Enrich kandidat IT: kontak, foto, review (bisa lama ~15 detik/company)
@@ -77,16 +81,16 @@ uv run pkl-research report
 | Perintah | Fungsi |
 |---|---|
 | `pkl-research db init` | Buat schema + migrasi (idempotent) |
-| `pkl-research search [--headless]` | Scan kandidat IT Jaksel → DB |
+| `pkl-research search [--headless] [--backend chrome\|camofox\|brave\|edge]` | Scan kandidat IT Jaksel → DB |
 | `pkl-research details --scope it [--headless] [--limit N] [--force]` | Enrich kontak, foto, review |
 | `pkl-research profile [--headless] [--force]` | Scan website qualified → profil + deteksi AI |
 | `pkl-research db list [--qualified] [--min-rating] [--min-reviews] [--role] [--category] [--sector] [--sort]` | Query DB (preset `--qualified` = ≥4.9 & ≥100 ulasan) |
 | `pkl-research db stats` | Ringkasan data (termasuk per sektor) |
-| `pkl-research message "<nama>"` | Draft pesan (3 varian, pakai profil website) → simpan + stdout |
+| `pkl-research message "<nama>"` | Draft pesan (3 varian, pakai profil website; otomatis WFA jika >10 km) → simpan + stdout |
 | `pkl-research report` | `report.md`, `profiles.md`, `companies.csv`, `companies.json`, `drafts.md` |
 | `pkl-research cv analyze "<path>"` | Analisa CV: skor 4 arah + ATS checklist → `output/cv_analysis.json` |
 | `pkl-research cv match` | Ranking perusahaan by fit-CV → simpan `fit_score` di DB |
-| `pkl-research shortlist [--max-km 6] [--min-fit 70] [--min-ulasan 10] [--headless]` | Shortlist CV-match (IT + Jakarta Selatan + dekat + fit): scan website → `shortlist.md` + **`shortlist.xlsx` (3 sheet berwarna)** + `shortlist_drafts.md` (top N) |
+| `pkl-research shortlist [--max-km 15] [--min-fit 70] [--min-ulasan 10] [--headless]` | Shortlist CV-match (IT + Jakarta Selatan + dekat + fit): scan website → `shortlist.md` + **`shortlist.xlsx` (3 sheet berwarna)** + `shortlist_drafts.md` (top N) |
 | `pkl-research track update "<nama>" --status <s> [--note ...]` | Update status lamaran |
 | `pkl-research track list [--status]` | Lihat semua aplikasi |
 
@@ -113,8 +117,10 @@ src/pkl_research/
 2. Jumlah ulasan ≥ 10 (hard)
 3. Alamat mengandung "Jakarta" (hard)
 4. Koordinat dalam bounding box DKI Jakarta (hard, sekunder)
-5. Jarak dari rumah ≤ `MAX_DISTANCE_KM` (hard)
+5. Jarak dari rumah ≤ `MAX_DISTANCE_KM` (hard, default 15 km untuk Jabodetabek)
 6. Kategori IT (soft — ditandai `role_fit`, tidak di-drop)
+
+**Draft >10 km otomatis WFA**: jika `distance_km > WFA_KM (10 km)`, draft menyisipkan `wfa_line` (Work From Anywhere/hybrid — onsite terjadwal + remote) untuk kandidat jauh.
 
 **Qualified shortlist** (target lamaran): rating ≥ 4.9 **dan** ulasan ≥ 100 (bisa diubah di `config.py`: `TARGET_RATING`, `TARGET_MIN_REVIEWS`).
 

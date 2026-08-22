@@ -118,6 +118,19 @@ MIGRATIONS: list[str] = [
     """
     ALTER TABLE company_profiles ADD COLUMN whatsapp TEXT;
     """,
+    # v6: intern search + WFA
+    """
+    ALTER TABLE companies ADD COLUMN intern_period TEXT;
+    ALTER TABLE companies ADD COLUMN intern_duration INTEGER;
+    ALTER TABLE companies ADD COLUMN stipend TEXT;
+    ALTER TABLE companies ADD COLUMN mentorship INTEGER;
+    ALTER TABLE companies ADD COLUMN school_letter_required INTEGER;
+    ALTER TABLE companies ADD COLUMN remote_policy TEXT;
+    ALTER TABLE companies ADD COLUMN applied_at TEXT;
+    ALTER TABLE company_profiles ADD COLUMN remote_policy TEXT;
+    ALTER TABLE company_profiles ADD COLUMN intern_period TEXT;
+    ALTER TABLE company_profiles ADD COLUMN stipend TEXT;
+    """,
 ]
 
 

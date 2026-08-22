@@ -193,6 +193,9 @@ class CompanyProfile:
     linkedin_url: str | None = None
     linkedin_label: str | None = None
     whatsapp: str | None = None
+    remote_policy: str | None = None
+    intern_period: str | None = None
+    stipend: str | None = None
     tech_stack: list[str] = field(default_factory=list)
     keywords: list[str] = field(default_factory=list)
     fetch_status: str = "pending"

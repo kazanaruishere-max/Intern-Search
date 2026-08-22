@@ -78,6 +78,9 @@ def auto_notes(
     if profile and profile.whatsapp:
         notes.append(f"WhatsApp: {profile.whatsapp}")
 
+    if company.distance_km is not None and company.distance_km > 10.0:
+        notes.append(f"WFA (jarak {company.distance_km:.1f} km, >10 km)")
+
     if profile and profile.core_focus:
         notes.append(f"Fokus: {_one_line(profile.core_focus, 90)}")
 

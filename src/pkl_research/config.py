@@ -35,7 +35,26 @@ JAKARTA_BBOX = {
     "lon_max": 106.970,
 }
 
+JABODETABEK_BBOX = {
+    "lat_min": -6.45,
+    "lat_max": -5.90,
+    "lon_min": 106.40,
+    "lon_max": 107.15,
+}
+
+JABODETABEK_CENTERS = [
+    {"name": "Jakarta Selatan", "lat": -6.24, "lng": 106.80, "zoom": 13},
+    {"name": "Jakarta Timur", "lat": -6.22, "lng": 106.90, "zoom": 13},
+    {"name": "Jakarta Barat", "lat": -6.17, "lng": 106.75, "zoom": 13},
+    {"name": "Bekasi", "lat": -6.24, "lng": 107.02, "zoom": 13},
+    {"name": "Tangerang", "lat": -6.20, "lng": 106.63, "zoom": 13},
+]
+
 CENTER_JAKSEL = {"lat": -6.24, "lng": 106.80, "zoom": 13}
+
+INTERN_PERIOD = "2027-01/2027-03"
+WFA_THRESHOLD_KM = 10.0
+MAX_SEARCH_RADIUS_KM = 15.0
 
 MIN_RATING = 4.5
 MIN_REVIEW_COUNT = 10
@@ -192,7 +211,8 @@ def home_location() -> dict[str, float] | None:
         return {
             "lat": float(lat),
             "lon": float(lon),
-            "max_distance_km": float(os.getenv("MAX_DISTANCE_KM", "8.0")),
+            "max_distance_km": float(os.getenv("MAX_DISTANCE_KM", "15.0")),
+            "wfa_km": float(os.getenv("WFA_KM", str(WFA_THRESHOLD_KM))),
         }
     except ValueError:
         return None

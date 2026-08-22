@@ -8,24 +8,27 @@ from pkl_research.scraper.browser import BrowserSession
 
 def resolve_backend(requested: str = "auto") -> str:
     """
-    Return 'playwright' atau 'camofox'.
+    Return 'playwright' atau 'camofox'/'chrome'/'brave'/'edge'.
     Camofox hanya dipakai kalau diminta dan CAMOFOX_API tersedia.
     """
     req = (requested or "auto").strip().lower()
-    if req not in {"auto", "playwright", "camofox"}:
-        raise ValueError(f"Backend tidak dikenal: {requested}")
-    if req == "playwright":
-        return "playwright"
-    if req == "camofox":
-        if not config.camofox_api():
+    mapping = {
+        "chrome": "playwright",
+        "chromium": "playwright",
+        "playwright": "playwright",
+        "brave": "playwright",
+        "edge": "playwright",
+        "camofox": "camofox" if config.camofox_api() else "playwright",
+    }
+    if req == "auto":
+        return "camofox" if config.camofox_api() else "playwright"
+    if req in mapping:
+        if req == "camofox" and not config.camofox_api():
             raise RuntimeError(
-                "CAMOFOX_API belum diset. Isi di .env atau pakai --backend playwright."
+                "CAMOFOX_API belum diset. Isi di .env atau pakai --backend chrome|brave."
             )
-        return "camofox"
-    # auto
-    if config.camofox_api():
-        return "camofox"
-    return "playwright"
+        return mapping[req]
+    raise ValueError(f"Backend tidak dikenal: {requested} (chrome|camofox|brave|edge|auto)")
 
 
 def open_browser_session(
