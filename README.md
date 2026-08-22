@@ -1,122 +1,124 @@
 # Intern-Search
 
-> Semi-autonomous intern/PKL search tool dengan CV-fit scoring, multi-source scraping (Google Maps / Glints / LinkedIn), auto-draft WFA untuk kandidat >10 km, dan prinsip **human-in-the-loop**.
+[🇬🇧 English](README.md) | [🇮🇩 Bahasa Indonesia](README_ID.md)
+
+> Semi-autonomous intern/PKL search tool with CV-fit scoring, multi-source scraping (Google Maps / Glints / LinkedIn), auto-draft WFA for candidates >10 km, and a **human-in-the-loop** design.
 
 ![Python](https://img.shields.io/badge/Python-3.12%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Tests](https://img.shields.io/badge/tests-passing-brightgreen)
 ![CLI](https://img.shields.io/badge/interface-CLI-informational)
 
-Intern-Search adalah tool CLI semi-otomatis untuk riset lowongan PKL/magang IT: scraping kandidat dari beberapa sumber, filtering otomatis, analisa kecocokan CV, hingga generate draft pesan lamaran yang dipersonalisasi. Tool **tidak pernah mengirim lamaran sendiri** — kamu yang memilih, mengedit, dan mengirim manual.
+Intern-Search is a semi-automated CLI tool for researching IT internship/PKL opportunities: scrape candidates from multiple sources, auto-filter, analyze CV fit, and generate personalized application draft messages. The tool **never sends applications on its own** — you choose, edit, and send manually.
 
 ---
 
-## Kenapa Intern-Search?
+## Why Intern-Search?
 
-90% repositori `job-search` di GitHub fokus ke lowongan full-time. Kebutuhan intern/PKL sangat berbeda:
+90% of `job-search` repos on GitHub focus on full-time vacancies. Intern/PKL needs are fundamentally different:
 
-| Kebutuhan PKL/Intern | Repositori job-search biasa | Intern-Search |
+| Intern/PKL Need | Typical job-search repo | Intern-Search |
 |---|---|---|
-| Periode fixed (mis. Jan–Mar, durasi 3 bulan) | ❌ Tidak ada | ✅ Terintegrasi di draft (`DURASI_PKL`) |
-| Butuh surat sekolah & mentorship | ❌ Tidak relevan | ✅ Diperhitungkan dalam konteks lamaran |
-| Harapan konversi magang→kerja | ❌ Tidak dibahas | ✅ Sudut bicara di draft |
-| Skema WFA/hybrid untuk kandidat jauh | ❌ Tidak ada | ✅ Auto-draft WFA jika >10 km |
-| Multi-source global (Maps/Glints/LinkedIn) | Umumnya 1 sumber | ✅ Plugin system, region-aware |
+| Fixed period (e.g. Jan–Mar, 3 months) | ❌ Not supported | ✅ Integrated in draft (`DURASI_PKL`) |
+| School letter & mentorship | ❌ Not relevant | ✅ Factored into application context |
+| Internship-to-fulltime conversion | ❌ Not discussed | ✅ Angle in draft message |
+| WFA/hybrid for far candidates | ❌ Not available | ✅ Auto-draft WFA if >10 km |
+| Multi-source global (Maps/Glints/LinkedIn) | Usually 1 source | ✅ Plugin system, region-aware |
 
-Hasilnya: pool kandidat yang jauh lebih luas dan bisa dipakai di negara/kota manapun via konfigurasi `REGION`, bukan hardcode satu kota.
+Result: a much wider candidate pool, usable in any city/country via `REGION` config — not hardcoded to one city.
 
 ## Features
 
-**Riset & Scraping**
-- Scrape perusahaan IT dari Google Maps: rating, ulasan, foto, kontak, koordinat.
-- Multi-source via plugin system: Maps, Glints, LinkedIn (+ JobStreet/Indeed di roadmap).
-- Region global: `ID-Jabodetabek`, `SG` (Singapore), atau custom koordinat.
-- ~36 query pencarian per peran: software / AI / fullstack / game.
+**Research & Scraping**
+- Scrape IT companies from Google Maps: rating, reviews, photos, contact, coordinates.
+- Multi-source via plugin system: Maps, Glints, LinkedIn (+ JobStreet/Indeed on roadmap).
+- Global regions: `ID-Jabodetabek`, `SG` (Singapore), or custom coordinates.
+- ~36 search queries per role: software / AI / fullstack / game.
 
-**Filtering & Analisa**
-- Filter otomatis rating ≥ 4.5, ulasan ≥ 10, dalam bbox region, jarak ≤ 15 km.
-- Deteksi perusahaan non-dev (branding agency, gym, bimbel, dll) dengan override sinyal dev.
-- Klasifikasi sektor: swasta / negeri / bumn (nama, kategori, domain `.go.id`).
-- Deteksi unsur AI pada website perusahaan + bukti kutipan.
+**Filtering & Analysis**
+- Auto-filter: rating ≥ 4.5, reviews ≥ 10, within region bbox, distance ≤ 15 km.
+- Non-dev detection (branding agency, gym, tutoring, etc.) with dev-signal override.
+- Sector classification: private / government / state-owned (name, category, `.go.id` domain).
+- AI detection on company websites + evidence quotes.
 
 **CV & Drafting**
-- Analisa CV (PDF/DOCX/TXT): skor 4 arah + checklist ATS.
-- Ranking perusahaan by fit-CV (`fit_score` tersimpan di DB).
-- Draft pesan lamaran 3 varian, terpersonalisasi dari profil website + skill CV.
-- ⚠️ **Auto-WFA**: jarak >10 km otomatis menyisipkan usulan skema Work From Anywhere/hybrid.
+- CV analysis (PDF/DOCX/TXT): 4-direction score + ATS checklist.
+- Company ranking by CV-fit (`fit_score` stored in DB).
+- 3-variant application draft messages, personalized from website profile + CV skills.
+- ⚠️ **Auto-WFA**: distance >10 km automatically inserts a Work From Anywhere/hybrid proposal.
 
 **Human-in-the-loop**
-- Tool hanya riset & menulis draft — **TIDAK auto-apply**.
-- Tracker status lamaran: `shortlisted → applied → replied → interview → accepted/rejected`.
-- Database SQLite + export CSV/JSON/Markdown/XLSX.
+- The tool only researches & writes drafts — **NO auto-apply**.
+- Application tracker: `shortlisted → applied → replied → interview → accepted/rejected`.
+- SQLite database + export to CSV/JSON/Markdown/XLSX.
 
 ## Quick Start
 
-Prasyarat: [uv](https://docs.astral.sh/uv/) terpasang, Python 3.12+.
+Prerequisite: [uv](https://docs.astral.sh/uv/) installed, Python 3.12+.
 
 ```bash
-# 0. Clone & install dependensi
+# 0. Clone & install dependencies
 git clone <repo-url>
 cd intern-search
 uv sync
-uv run playwright install chromium   # atau chrome | brave | edge
+uv run playwright install chromium   # or chrome | brave | edge
 
-# 1. Konfigurasi environment
-cp .env.example .env                 # lalu edit:
-#   HOME_LAT / HOME_LON        → koordinat rumahmu (klik kanan di Google Maps)
-#   MAX_DISTANCE_KM=15.0       → radius pencarian maksimum
-#   WFA_KM=10.0                → ambang auto-draft Work From Anywhere
-#   CAMOFOX_API=<url>          → WAJIB untuk Glints/LinkedIn (lihat bagian Anti-Block)
-#   NAMA / SEKOLAH / JURUSAN / DURASI_PKL / EMAIL / TELEPON → pengisi draft pesan
+# 1. Configure environment
+cp .env.example .env                 # then edit:
+#   HOME_LAT / HOME_LON        → your home coordinates (right-click on Google Maps)
+#   MAX_DISTANCE_KM=15.0       → max search radius
+#   WFA_KM=10.0                → auto-draft Work From Anywhere threshold
+#   CAMOFOX_API=<url>          → REQUIRED for Glints/LinkedIn (see Anti-Block)
+#   NAMA / SEKOLAH / JURUSAN / DURASI_PKL / EMAIL / TELEPON → draft message fields
 
-# 2. Buat database SQLite
+# 2. Create SQLite database
 uv run pkl-research db init
 
-# 3. Kumpulkan kandidat (~36 query, AI-first + IT)
+# 3. Collect candidates (~36 queries, AI-first + IT)
 uv run pkl-research search --headless --backend camofox
 
-# 4. Enrich kandidat IT: kontak, foto, review (~15 detik/company)
+# 4. Enrich IT candidates: contact, photos, reviews (~15 sec/company)
 uv run pkl-research details --scope it --headless
 
-# 5. Analisa CV kamu → skor arah + ATS checklist
+# 5. Analyze your CV → direction scores + ATS checklist
 uv run pkl-research cv analyze "path/CV.pdf"
 
-# 6. Ranking perusahaan by kecocokan CV
+# 6. Rank companies by CV fit
 uv run pkl-research cv match
 
-# 7. Shortlist final: scan website + profil mendalam + draft top-N
-#    Output: shortlist.md + shortlist.xlsx (3 sheet berwarna) + shortlist_drafts.md
+# 7. Final shortlist: scan websites + deep profiles + top-N drafts
+#    Output: shortlist.md + shortlist.xlsx (3 color-coded sheets) + shortlist_drafts.md
 uv run pkl-research shortlist --headless
 ```
 
-Setelah itu, review kandidat, generate draft per perusahaan, kirim **manual**, dan track statusnya:
+After that, review candidates, generate per-company drafts, send **manually**, and track:
 
 ```bash
 uv run pkl-research db list --qualified --sort distance
-uv run pkl-research message "Nama Perusahaan"
-# ...kirim manual via email/WA/LinkedIn...
-uv run pkl-research track update "Nama Perusahaan" --status applied --sent-via email
+uv run pkl-research message "Company Name"
+# ...send manually via email/WA/LinkedIn...
+uv run pkl-research track update "Company Name" --status applied --sent-via email
 uv run pkl-research report
 ```
 
 ## CLI Reference
 
-Semua perintah dijalankan via `uv run pkl-research <command>`.
+All commands run via `uv run pkl-research <command>`.
 
-| Command | Flags | Fungsi |
+| Command | Flags | Description |
 |---|---|---|
-| `db init` | — | Buat schema + migrasi idempotent |
-| `search` | `--headless` · `--backend chrome\|camofox\|brave\|edge\|auto` · `--source maps,glints,linkedin,all` · `--region ID-Jakarta\|SG\|custom:lat,lng,radius` | Scan kandidat multi-source → DB |
-| `details` | `--scope it` · `--headless` · `--limit N` · `--force` | Enrich kontak, foto, review (resume-aware) |
-| `profile` | `--headless` · `--force` | Scan website qualified → profil + deteksi AI |
-| `db list` | `--qualified` · `--min-rating N` · `--min-reviews N` · `--role software\|ai\|fullstack\|game` · `--category C` · `--sector swasta\|negeri\|bumn` · `--sort distance\|rating\|ulasan` | Query DB (preset `--qualified` = rating ≥ 4.9 & ulasan ≥ 100) |
-| `db stats` | — | Ringkasan data per sektor/peran |
-| `cv analyze` | `"<path CV>"` (PDF/DOCX/TXT) | Skor 4 arah + checklist ATS → `output/cv_analysis.json` |
-| `cv match` | — | Ranking perusahaan by fit-CV → simpan `fit_score` |
-| `shortlist` | `--max-km 15` · `--min-fit 70` · `--min-ulasan 10` · `--headless` · `--no-scan` | IT + dekat + fit-CV → `shortlist.xlsx` + draft top-N |
-| `message` | `"<nama>"` | Draft pesan 3 varian (auto-WFA jika >10 km) → DB + stdout |
-| `track update` | `--status shortlisted\|applied\|replied\|interview\|accepted\|rejected\|on_hold` · `--note "..."` · `--sent-via email\|wa\|linkedin` | Update status lamaran |
-| `track list` | `--status S` | Lihat semua aplikasi |
+| `db init` | — | Create schema + idempotent migrations |
+| `search` | `--headless` · `--backend chrome\|camofox\|brave\|edge\|auto` · `--source maps,glints,linkedin,all` · `--region ID-Jakarta\|SG\|custom:lat,lng,radius` | Multi-source candidate scan → DB |
+| `details` | `--scope it` · `--headless` · `--limit N` · `--force` | Enrich contact, photos, reviews (resume-aware) |
+| `profile` | `--headless` · `--force` | Scan qualified websites → profile + AI detection |
+| `db list` | `--qualified` · `--min-rating N` · `--min-reviews N` · `--role software\|ai\|fullstack\|game` · `--category C` · `--sector swasta\|negeri\|bumn` · `--sort distance\|rating\|ulasan` | Query DB (preset `--qualified` = rating ≥ 4.9 & reviews ≥ 100) |
+| `db stats` | — | Summary per sector/role |
+| `cv analyze` | `"<CV path>"` (PDF/DOCX/TXT) | 4-direction scores + ATS checklist → `output/cv_analysis.json` |
+| `cv match` | — | Rank companies by CV fit → saves `fit_score` |
+| `shortlist` | `--max-km 15` · `--min-fit 70` · `--min-ulasan 10` · `--headless` · `--no-scan` | IT + near + CV-fit → `shortlist.xlsx` + top-N drafts |
+| `message` | `"<name>"` | 3-variant draft (auto-WFA if >10 km) → DB + stdout |
+| `track update` | `--status shortlisted\|applied\|replied\|interview\|accepted\|rejected\|on_hold` · `--note "..."` · `--sent-via email\|wa\|linkedin` | Update application status |
+| `track list` | `--status S` | View all applications |
 | `report` | — | Export `report.md`, `profiles.md`, `companies.csv/json`, `drafts.md` |
 
 ## Architecture
@@ -137,105 +139,105 @@ Semua perintah dijalankan via `uv run pkl-research <command>`.
                                                     └────────┬────────┘
                                                              ▼
   filters.py ──▶ sector.py ──▶ ai_detect.py ──▶ cv_match ──▶ messaging.py
-  rating·jarak·  swasta/negeri/ AI subfields    fit_score    draft 3 varian
+  rating·jarak·  swasta/negeri/ AI subfields    fit_score    draft 3 variants
   bbox·non-dev   bumn           + evidence                   + auto-WFA line
                                                              │
                                                              ▼
-                                        exporter (md/csv/xlsx) ─▶ ✅ HUMAN REVIEW
-                                                                  kirim manual
+                                       exporter (md/csv/xlsx) ─▶ ✅ HUMAN REVIEW
+                                                                 send manually
 ```
 
 ### Project Structure
 
 ```text
 src/pkl_research/
-├── cli.py             # Entry point CLI (13 subcommand)
-├── config.py          # REGIONS global, WFA_THRESHOLD_KM, QUERIES_BY_ROLE, loader .env
-├── models.py          # Dataclass: Company, Review, Application, CompanyProfile
-├── filters.py         # Filter rating/geografi/jarak + klasifikasi peran (pure)
-├── sector.py          # Klasifikasi sektor swasta/negeri/bumn (pure)
-├── ai_detect.py       # Deteksi unsur AI pada teks + bukti kutipan (pure)
-├── messaging.py       # Template draft + WFA line (pure)
+├── cli.py             # CLI entry point (13 subcommands)
+├── config.py          # REGIONS global, WFA_THRESHOLD_KM, QUERIES_BY_ROLE, .env loader
+├── models.py          # Dataclasses: Company, Review, Application, CompanyProfile
+├── filters.py         # Rating/geography/distance filter + role classification (pure)
+├── sector.py          # Sector classification: private/government/state-owned (pure)
+├── ai_detect.py       # AI detection on text + evidence quotes (pure)
+├── messaging.py       # Draft templates + WFA line (pure)
 ├── exporter.py        # Export CSV/JSON/Markdown/XLSX
-├── db/                # Koneksi + schema/migrasi idempotent + Repository pattern
+├── db/                # Connection + schema/idempotent migrations + Repository pattern
 └── scraper/
-    ├── backend.py     # resolve_backend() → Camofox wajib
+    ├── backend.py     # resolve_backend() → Camofox preferred
     ├── plugins/       # BaseScraper ABC, registry, maps/glints/linkedin/template.py
     └── browser.py     # Persistent context anti-block
 ```
 
 ## Filter Rules
 
-| # | Aturan | Jenis | Nilai default |
+| # | Rule | Type | Default |
 |---|---|---|---|
-| 1 | Rating ≥ 4.5 | Hard | `MIN_RATING` di `config.py` |
-| 2 | Jumlah ulasan ≥ 10 | Hard | `MIN_REVIEW_COUNT` di `config.py` |
-| 3 | Alamat mengandung "Jakarta" | Hard | — |
-| 4 | Koordinat dalam bbox region (Jabodetabek / SG) | Hard | `REGIONS[region].bbox` |
-| 5 | Jarak rumah ≤ `MAX_DISTANCE_KM` | Hard | 15 km (Jabodetabek), 20 km (SG) |
-| 6 | Kategori IT soft-fit | Soft | Ditandai `role_fit`, tidak di-drop |
-| 7 | Filter `is_non_dev` | Drop | Gym/salon/kafe/percetakan/branding agency/dll |
+| 1 | Rating ≥ 4.5 | Hard | `MIN_RATING` in `config.py` |
+| 2 | Review count ≥ 10 | Hard | `MIN_REVIEW_COUNT` in `config.py` |
+| 3 | Address contains "Jakarta" | Hard | — |
+| 4 | Coordinates within region bbox (Jabodetabek / SG) | Hard | `REGIONS[region].bbox` |
+| 5 | Home distance ≤ `MAX_DISTANCE_KM` | Hard | 15 km (Jabodetabek), 20 km (SG) |
+| 6 | IT category soft-fit | Soft | Tagged `role_fit`, not dropped |
+| 7 | `is_non_dev` filter | Drop | Gym/salon/café/printing/branding agency/etc. |
 
-Detail aturan 6–7: keyword kategori & nama yang jelas bukan software development (contoh: "penjenamaan", "bimbel", "sablon") menandai kandidat sebagai non-dev. Keyword dev yang kuat ("software", "pengembang aplikasi", "it ") dapat **mengoverride** tanda non-dev.
+Rules 6–7 detail: category & name keywords that are clearly not software development (e.g. "branding", "tutoring", "screen printing") mark a candidate as non-dev. Strong dev keywords ("software", "app developer", "it ") can **override** the non-dev flag.
 
-💡 **Qualified shortlist** (target lamaran): rating ≥ 4.9 **dan** ulasan ≥ 100 — ubah lewat `TARGET_RATING` / `TARGET_MIN_REVIEWS` di `config.py`.
+💡 **Qualified shortlist** (application target): rating ≥ 4.9 **and** reviews ≥ 100 — configurable via `TARGET_RATING` / `TARGET_MIN_REVIEWS` in `config.py`.
 
 ## WFA Auto-Draft
 
-Banyak perusahaan IT bagus ada di luar radius nyaman komuter. Alih-alih membuang kandidat jauh:
+Many great IT companies are beyond a comfortable commute. Instead of dropping distant candidates:
 
-- Jika `distance_km > WFA_KM` (default **10 km**, configurable via `.env`), draft menyisipkan **wfa_line**: usulan skema **Work From Anywhere/hybrid** — onsite terjadwal + remote, *bukan* menuntut full remote.
-- Threshold bisa diubah per-user (`WFA_KM`) atau per-region (`REGIONS[region].max_km` untuk batas pencarian).
-- Untuk region non-ID, draft juga bisa menyisipkan catatan visa jika `remote_policy == WFA`.
-- Kamu tetap pegang kendali penuh: baris ini bisa diedit/hapus sebelum kirim.
+- If `distance_km > WFA_KM` (default **10 km**, configurable via `.env`), the draft inserts a **wfa_line**: a proposal for a **Work From Anywhere/hybrid** scheme — scheduled onsite + remote, *not* demanding full remote.
+- Threshold is per-user (`WFA_KM`) or per-region (`REGIONS[region].max_km` for search limit).
+- For non-ID regions, the draft can also include a visa note if `remote_policy == WFA`.
+- You retain full control: this line can be edited/removed before sending.
 
-## Sektor & AI Detection
+## Sector & AI Detection
 
-**Klasifikasi sektor** (`classify_sector(name, category, website)`):
-- `negeri` — domain `.go.id`, atau nama mengandung Dinas/Kementerian/Pemerintah (word-boundary).
-- `bumn` — pola `(Persero)` dan daftar BUMN terkurasi.
-- `swasta` / `unknown` — sisanya.
+**Sector classification** (`classify_sector(name, category, website)`):
+- `government` — `.go.id` domain, or name contains Dinas/Kementerian/Pemerintah (word-boundary).
+- `state-owned` — `(Persero)` pattern and a curated BUMN list.
+- `private` / `unknown` — everything else.
 
-**Deteksi AI** (`ai_detect`): regex frase — AI Development, Machine Learning, Deep Learning, LLM/Generative AI, Chatbot, Computer Vision, NLP, Data Science, AI Agent, dst. Token `\bai\b` sendirian tidak dihitung (anti false-positive). Output: `ai_subfields` + `ai_evidence` (kutipan bukti dari website).
+**AI Detection** (`ai_detect`): phrase regex — AI Development, Machine Learning, Deep Learning, LLM/Generative AI, Chatbot, Computer Vision, NLP, Data Science, AI Agent, etc. Standalone `\bai\b` token is not counted (anti-false-positive). Output: `ai_subfields` + `ai_evidence` (evidence quotes from website).
 
 ## CV Analysis
 
-- **`cv analyze`**: ekstrak teks PDF/DOCX/TXT (`pypdf`, `python-docx`), deteksi skill teknis, skor 4 arah 0–100 (software/AI/fullstack/game), plus checklist ATS: kontak, struktur section, keyword, angka terukur, panjang dokumen.
-- **`cv match`**: ranking semua perusahaan — `fit_score` = rata-rata skor CV terhadap arah `role_fit` perusahaan, tersimpan di kolom `fit_score`.
-- Draft pesan otomatis menyisipkan skill CV yang relevan dengan arah perusahaan tersebut.
+- **`cv analyze`**: extract text from PDF/DOCX/TXT (`pypdf`, `python-docx`), detect technical skills, score 4 directions 0–100 (software/AI/fullstack/game), plus ATS checklist: contact, section structure, keywords, quantified achievements, document length.
+- **`cv match`**: rank all companies — `fit_score` = average CV score against company's `role_fit`, stored in the `fit_score` column.
+- Draft messages automatically insert CV skills relevant to the company's direction.
 
-📱 Hasil lengkap tersedia di `output/cv_analysis.json` dan kolom `fit_score` di DB.
+📱 Full results available in `output/cv_analysis.json` and the `fit_score` column in the DB.
 
 ## Anti-Block Tips
 
-> **Disarankan pakai Camofox Browser** — jauh lebih optimal untuk scraping Maps/Glints (anti-detect, session human-like). **Camofox wajib** untuk sumber Glints/LinkedIn.
+> **Camofox Browser is recommended** — significantly better for scraping Maps/Glints (anti-detect, human-like session). **Camofox is required** for Glints/LinkedIn sources.
 
-- Isi `CAMOFOX_API` di `.env`; gunakan `--backend camofox` (atau biarkan `--backend auto` yang memprioritaskan Camofox).
-- Browser persistent context (`user_data/`) — cookie tersimpan, terlihat seperti user biasa.
-- Delay acak antar aksi (2–6 dtk) dan antar perusahaan (5–10 dtk).
-- Run pertama disarankan **headful** (tanpa `--headless`); kalau muncul captcha, selesaikan manual lalu lanjut headless.
-- Checkpoint/resume: perusahaan yang sudah di-enrich tidak diproses ulang (kecuali `--force`).
+- Set `CAMOFOX_API` in `.env`; use `--backend camofox` (or leave `--backend auto` which prioritizes Camofox).
+- Browser persistent context (`user_data/`) — cookies persist, looks like a returning user.
+- Random delay between actions (2–6 sec) and between companies (5–10 sec).
+- First run recommended **headful** (without `--headless`); if captcha appears, solve manually then continue headless.
+- Checkpoint/resume: already-enriched companies are not re-processed (unless `--force`).
 
 ## Troubleshooting
 
-| Masalah | Solusi |
+| Problem | Solution |
 |---|---|
-| **CAPTCHA muncul saat scraping** | Jalankan tanpa `--headless`, selesaikan captcha manual, lanjutkan `--headless`. |
-| **Camofox error / `fetch failed`** | Pastikan server Camofox berjalan & `CAMOFOX_API` terisi di `.env`. Fallback: `--backend chrome` (Playwright). |
-| **`shortlist.xlsx` Permission denied** | File terbuka di Excel — tutup dulu, jalankan ulang. |
-| **Glints/LinkedIn return 0 hasil** | Plugin POC — situs sering ubah DOM. Cek `output/probe_*.html` untuk debug, atau gunakan `--source maps` saja. |
-| **Review tidak ter-load semua** | Naikkan `--max-reviews 50` di `details`. Default 20 cukup untuk highlight. |
-| **`fit_score` kosong** | Jalankan `cv analyze <path>` dulu, lalu `cv match`. |
-| **Draft pesan kosong/tidak ada profil_line** | Jalankan `profile --scan` untuk scan website perusahaan qualified. |
+| **CAPTCHA during scraping** | Run without `--headless`, solve captcha manually, then continue with `--headless`. |
+| **Camofox error / `fetch failed`** | Ensure Camofox server is running & `CAMOFOX_API` is set in `.env`. Fallback: `--backend chrome` (Playwright). |
+| **`shortlist.xlsx` Permission denied** | File is open in Excel — close it first, then re-run. |
+| **Glints/LinkedIn return 0 results** | Plugin POC — sites often change DOM. Check `output/probe_*.html` for debugging, or use `--source maps` only. |
+| **Reviews not fully loaded** | Increase `--max-reviews 50` in `details`. Default 20 is enough for highlights. |
+| **`fit_score` empty** | Run `cv analyze <path>` first, then `cv match`. |
+| **Draft message missing profile_line** | Run `profile --scan` to scan qualified companies' websites. |
 
 ## Legal Disclaimer
 
-⚠️ Scraping Google Maps melanggar **Terms of Service** Google. Tool ini hanya untuk **riset pribadi volume kecil** — jangan digunakan untuk scraping massal/komersial. Gunakan delay yang wajar dan patuhi rate limit. Data ulasan tetap milik penulisnya. Semua lamaran dikirim **manual oleh user** — tool tidak memiliki jalur pengiriman otomatis apa pun.
+⚠️ Scraping Google Maps violates Google's **Terms of Service**. This tool is for **small-volume personal research** only — do not use for mass/commercial scraping. Use reasonable delays and respect rate limits. Review data belongs to its authors. All applications are sent **manually by the user** — the tool has no automated sending mechanism.
 
 ## Contributing
 
-Kontribusi welcome! Silakan baca panduan lengkap di [CONTRIBUTING.md](CONTRIBUTING.md). Ide kontribusi yang dibutuhkan: plugin scraper baru (JobStreet, Indeed — lihat `scraper/plugins/template.py`), penambahan region baru di `config.REGIONS`, i18n query per bahasa, dan perbaikan test.
+Contributions welcome! Read the full guide at [CONTRIBUTING.md](CONTRIBUTING.md). Areas we need help with: new scraper plugins (JobStreet, Indeed — see `scraper/plugins/template.py`), new regions in `config.REGIONS`, i18n query per language, and test improvements.
 
 ## License
 
-Proyek ini dilisensikan di bawah [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
