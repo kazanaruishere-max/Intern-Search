@@ -50,6 +50,11 @@ class Company:
     price_range: str | None = None
     photos: list[str] = field(default_factory=list)
     photo_count: int = 0
+    vacancy_open: bool = False
+    vacancy_url: str | None = None
+    region: str | None = None
+    source: str | None = None
+    source_id: str | None = None
     scraped_at: str | None = None
     enriched_at: str | None = None
     id: int | None = None
@@ -78,6 +83,11 @@ class Company:
             is_it=bool(data.pop("is_it")),
             sector=data.pop("sector") or "unknown",
             fit_score=data.pop("fit_score"),
+            vacancy_open=bool(data.pop("vacancy_open")),
+            vacancy_url=data.pop("vacancy_url"),
+            region=data.pop("region"),
+            source=data.pop("source"),
+            source_id=data.pop("source_id"),
             phone=data.pop("phone"),
             website=data.pop("website"),
             email=data.pop("email"),
@@ -115,6 +125,11 @@ class Company:
             "is_it": self.is_it,
             "sector": self.sector,
             "fit_score": self.fit_score,
+            "vacancy_open": self.vacancy_open,
+            "vacancy_url": self.vacancy_url,
+            "region": self.region,
+            "source": self.source,
+            "source_id": self.source_id,
             "phone": self.phone,
             "website": self.website,
             "email": self.email,

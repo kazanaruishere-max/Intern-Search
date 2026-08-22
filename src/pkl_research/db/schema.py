@@ -126,10 +126,18 @@ MIGRATIONS: list[str] = [
     ALTER TABLE companies ADD COLUMN mentorship INTEGER;
     ALTER TABLE companies ADD COLUMN school_letter_required INTEGER;
     ALTER TABLE companies ADD COLUMN remote_policy TEXT;
-    ALTER TABLE companies ADD COLUMN applied_at TEXT;
     ALTER TABLE company_profiles ADD COLUMN remote_policy TEXT;
     ALTER TABLE company_profiles ADD COLUMN intern_period TEXT;
     ALTER TABLE company_profiles ADD COLUMN stipend TEXT;
+    """,
+    # v7: global vacancy + region + source (idempotent, no collision with v6)
+    """
+    ALTER TABLE companies ADD COLUMN vacancy_open INTEGER DEFAULT 0;
+    ALTER TABLE companies ADD COLUMN vacancy_url TEXT;
+    ALTER TABLE companies ADD COLUMN region TEXT;
+    ALTER TABLE companies ADD COLUMN source TEXT;
+    ALTER TABLE companies ADD COLUMN source_id TEXT;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_source_id ON companies(source, source_id);
     """,
 ]
 

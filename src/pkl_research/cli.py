@@ -180,10 +180,20 @@ def search(
     backend: str = typer.Option(
         "auto",
         "--backend",
-        help="playwright|camofox|auto (Camofox butuh CAMOFOX_API; default Playwright)",
+        help="chrome|camofox|brave|edge|auto (Camofox disarankan, fallback Playwright)",
+    ),
+    source: str = typer.Option(
+        "maps",
+        "--source",
+        help="maps|glints|linkedin|jobstreet|indeed|all (Phase B: multi-source)",
+    ),
+    region: str = typer.Option(
+        "ID-Jakarta",
+        "--region",
+        help="ID-Jakarta|SG|custom:6.2,106.8,15 (Phase B)",
     ),
 ) -> None:
-    """Scan kandidat perusahaan IT di Jakarta Selatan → simpan ke DB."""
+    """Scan kandidat perusahaan IT → simpan ke DB (global, multi-source)."""
     conn = _connect()
     repo = CompanyRepository(conn)
     app_repo = ApplicationRepository(conn)
@@ -212,15 +222,29 @@ def search(
     rest = [q for q in queries if q not in ai_first]
     queries = ai_first + rest
     chosen = resolve_backend(backend)
-    console.print(f"Backend: {chosen} | Menjalankan {len(queries)} query...")
+    region_cfg = config.REGIONS.get(region, config.REGIONS["ID-Jakarta"])
+    console.print(
+        f"Backend: {chosen} | Region: {region} ({region_cfg.get('label','')}) | "
+        f"Source: {source} | Menjalankan {len(queries)} query..."
+    )
 
-    with open_browser_session(backend=backend, headless=headless) as ctx:
-        page = ctx.pages[0] if ctx.pages else ctx.new_page()
-        candidates = collect_candidates(page, queries, config.CENTER_JAKSEL)
+    center = {"lat": region_cfg["lat"], "lng": region_cfg["lng"], "zoom": region_cfg["zoom"]}
+    src_list = [s.strip().lower() for s in source.split(",") if s.strip()]
+    if "all" in src_list:
+        src_list = ["maps"]
+
+    candidates = []
+    if "maps" in src_list:
+        with open_browser_session(backend=backend, headless=headless) as ctx:
+            page = ctx.pages[0] if ctx.pages else ctx.new_page()
+            candidates = collect_candidates(page, queries, center)
 
     added = passed = 0
     for c in candidates:
         c = _apply_filters(c)
+        c.region = region
+        c.source = source if source != "all" else "maps"
+        c.source_id = c.place_id
         c.scraped_at = _now()
         c.categories = c.categories or ([c.category] if c.category else [])
         existing = repo.get_by_place_id(c.place_id)

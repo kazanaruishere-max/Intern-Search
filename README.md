@@ -81,7 +81,7 @@ uv run pkl-research report
 | Perintah | Fungsi |
 |---|---|
 | `pkl-research db init` | Buat schema + migrasi (idempotent) |
-| `pkl-research search [--headless] [--backend chrome\|camofox\|brave\|edge]` | Scan kandidat IT Jaksel → DB |
+| `pkl-research search [--headless] [--backend chrome\|camofox\|brave\|edge] [--source maps,glints] [--region SG]` | Scan kandidat IT (global, multi-source) → DB |
 | `pkl-research details --scope it [--headless] [--limit N] [--force]` | Enrich kontak, foto, review |
 | `pkl-research profile [--headless] [--force]` | Scan website qualified → profil + deteksi AI |
 | `pkl-research db list [--qualified] [--min-rating] [--min-reviews] [--role] [--category] [--sector] [--sort]` | Query DB (preset `--qualified` = ≥4.9 & ≥100 ulasan) |
