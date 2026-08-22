@@ -3,8 +3,16 @@ name = "pkl-research"
 version = "0.1.0"
 description = "Tool riset perusahaan IT Jakarta Selatan untuk lamaran PKL: scrape Google Maps, filter rating/lokasi, generate draft pesan, dan tracker aplikasi."
 readme = "README.md"
+license = "MIT"
 authors = [
     { name = "kazanaru", email = "kazanaruishere@gmail.com" }
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 requires-python = ">=3.12"
 dependencies = [
