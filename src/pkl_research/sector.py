@@ -6,11 +6,13 @@ import re
 from urllib.parse import urlparse
 
 _NEGERI_NAME_RE = re.compile(
-    r"\b(pemerintah|kementerian|dinas|pemprov|pemkot|pemkab|instansi)\b",
+    r"\b(pemerintah|kementerian|dinas|pemprov|pemkot|pemkab|instansi"
+    r"|ministry|government agency|government department)\b",
     re.IGNORECASE,
 )
 _NEGERI_CATEGORY_RE = re.compile(
-    r"(instansi pemerintah|lembaga pemerintah|kantor pemerintahan|pemerintah)",
+    r"(instansi pemerintah|lembaga pemerintah|kantor pemerintahan|pemerintah"
+    r"|government agency|government office)",
     re.IGNORECASE,
 )
 _BUMN_PATTERNS = [

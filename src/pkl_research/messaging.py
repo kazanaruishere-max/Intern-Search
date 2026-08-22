@@ -46,12 +46,14 @@ def theme_counts(reviews: list[Review], limit: int = 3) -> list[str]:
     return [f"{kw} ({n}x)" for kw, n in top]
 
 
-def role_text(role_fit: list[str]) -> str:
+def role_text(role_fit: list[str], lang: str = "id") -> str:
     if not role_fit:
-        return "bidang IT"
-    labels = [config.ROLE_LABEL_ID[r] for r in role_fit if r in config.ROLE_LABEL_ID]
+        return "bidang IT" if lang == "id" else "IT field"
+    labels_map = config.ROLE_LABEL_EN if lang == "en" else config.ROLE_LABEL_ID
+    fallback = "IT field" if lang == "en" else "bidang IT"
+    labels = [labels_map[r] for r in role_fit if r in labels_map]
     if not labels:
-        return "bidang IT"
+        return fallback
     return " & ".join(labels)
 
 
@@ -185,10 +187,53 @@ Terima kasih,
 {nama}
 {kontak}"""
 
-TEMPLATES: dict[str, str] = {
-    "formal": FORMAL,
-    "casual": CASUAL,
-    "short": SHORT,
+TEMPLATES: dict[str, dict[str, str]] = {
+    "id": {"formal": FORMAL, "casual": CASUAL, "short": SHORT},
+}
+
+FORMAL_EN = """Dear {perusahaan} Team,
+
+My name is {nama}, a {jurusan} student at {sekolah}. I am currently seeking an Internship position in {role}, and {perusahaan} is one of my top choices.
+
+I am particularly drawn to {perusahaan}'s outstanding reputation — a {rating} rating from {review_count} reviews on Google Maps speaks volumes. {praise}
+{profil_line}
+{cv_line}
+
+Your office location is also accessible from my residence ({jarak}), allowing me to commit fully throughout the {durasi_pkl} internship period.
+{wfa_line}
+
+I would be thrilled to learn and contribute to your team. Would you be open to reviewing my CV and portfolio?
+
+Best regards,
+{nama}
+{kontak}"""
+
+CASUAL_EN = """Hi {perusahaan} team,
+
+I'm {nama}, a {jurusan} student from {sekolah}, looking for a {durasi_pkl} internship in {role}. During my research, {perusahaan} immediately caught my attention — {rating} rating from {review_count} reviews. {praise}
+{profil_line}
+{cv_line}
+
+Your office is also close to where I live ({jarak}), so commuting during the internship would be easy. I'm eager to learn and contribute to the {perusahaan} team.
+
+Would you be open to receiving my CV/portfolio for consideration? Thank you so much!
+
+{nama}
+{kontak}"""
+
+SHORT_EN = """Hello {perusahaan},
+
+I'm {nama} ({jurusan}, {sekolah}) seeking a {durasi_pkl} internship in {role}. With {perusahaan}'s {rating} rating from {review_count} reviews, I'm very interested in learning and contributing.
+
+I live in Jakarta Selatan, near your office ({jarak}). May I send my CV for your consideration?
+
+Thank you,
+{nama}
+{kontak}"""
+
+TEMPLATES: dict[str, dict[str, str]] = {
+    "id": {"formal": FORMAL, "casual": CASUAL, "short": SHORT},
+    "en": {"formal": FORMAL_EN, "casual": CASUAL_EN, "short": SHORT_EN},
 }
 
 
@@ -198,7 +243,9 @@ def build_drafts(
     identity: dict[str, str],
     profile: object | None = None,
     cv_analysis: dict | None = None,
+    lang: str = "id",
 ) -> dict[str, str]:
     """Hasilkan 3 varian draft pesan untuk satu perusahaan."""
     ctx = _build_context(company, reviews, identity, profile, cv_analysis)
-    return {name: template.format(**ctx) for name, template in TEMPLATES.items()}
+    templates = TEMPLATES.get(lang, TEMPLATES["id"])
+    return {name: template.format(**ctx) for name, template in templates.items()}

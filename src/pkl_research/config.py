@@ -54,7 +54,7 @@ CENTER_JAKSEL = {"lat": -6.24, "lng": 106.80, "zoom": 13}
 
 INTERN_PERIOD = "2027-01/2027-03"
 
-# Global regions (Phase A: 2 regions; Phase B+ tambah MY-KL, US-SF, dll)
+# Global regions — tambah region baru sesuai kebutuhan
 REGIONS: dict[str, dict] = {
     "ID-Jakarta": {
         "lat": -6.24,
@@ -69,17 +69,40 @@ REGIONS: dict[str, dict] = {
         "lat": 1.3521,
         "lng": 103.8198,
         "zoom": 12,
-        "bbox": {
-            "lat_min": 1.15,
-            "lat_max": 1.48,
-            "lon_min": 103.60,
-            "lon_max": 104.05,
-        },
+        "bbox": {"lat_min": 1.15, "lat_max": 1.48, "lon_min": 103.60, "lon_max": 104.05},
         "max_km": 20.0,
         "lang": "en",
         "label": "Singapore",
     },
+    "MY-KL": {
+        "lat": 3.1390,
+        "lng": 101.6869,
+        "zoom": 12,
+        "bbox": {"lat_min": 2.80, "lat_max": 3.40, "lon_min": 101.20, "lon_max": 101.95},
+        "max_km": 25.0,
+        "lang": "en",
+        "label": "Kuala Lumpur",
+    },
+    "US-SF": {
+        "lat": 37.7749,
+        "lng": -122.4194,
+        "zoom": 11,
+        "bbox": {"lat_min": 37.55, "lat_max": 38.00, "lon_min": -122.60, "lon_max": -122.25},
+        "max_km": 30.0,
+        "lang": "en",
+        "label": "San Francisco Bay Area",
+    },
+    "JP-Tokyo": {
+        "lat": 35.6762,
+        "lng": 139.6503,
+        "zoom": 12,
+        "bbox": {"lat_min": 35.50, "lat_max": 35.90, "lon_min": 139.40, "lon_max": 139.95},
+        "max_km": 25.0,
+        "lang": "en",
+        "label": "Tokyo",
+    },
 }
+
 WFA_THRESHOLD_KM = 10.0
 MAX_SEARCH_RADIUS_KM = 15.0
 
@@ -97,6 +120,8 @@ NON_DEV_CATEGORY_KEYWORDS = [
     "pemasaran", "marketing", "advertising", "iklan", "media promosi",
     "kursus", "pelatihan", "academy", "percetakan", "cetak", "printing",
     "logo", "fotografi", "event organizer", "humas", "public relations",
+    "branding agency", "design agency", "design studio", "marketing agency",
+    "advertising agency", "print shop", "tutoring center", "training center",
 ]
 # Keyword di NAMA perusahaan yang menandakan bukan software dev
 # (diutamakan kata majemuk/kuat, hindari "desain" polos yang bisa "desain web").
@@ -107,6 +132,8 @@ NON_DEV_NAME_KEYWORDS = [
     "desain grafis", "desain logo", "pemasaran", "marketing", "event",
     "undangan", "karikatur", "sablon", "kaos", "plakat", "agensi iklan",
     "advertising agency", "humas", "public relation",
+    "branding agency", "design agency", "design studio", "marketing agency",
+    "print shop", "tutoring center", "training center", "photo studio",
 ]
 # Sinyal kategori yang TETAP dianggap dev (override NON_DEV).
 DEV_CATEGORY_SIGNALS = [
@@ -120,6 +147,37 @@ MAX_PHOTOS = 20
 
 QUERY_SUFFIX = "jakarta selatan"
 
+# i18n queries — dipilih otomatis berdasarkan REGIONS[region].lang
+QUERIES_BY_LANG: dict[str, dict[str, list[str]]] = {
+    "id": {
+        "software": ["software house", "perusahaan perangkat lunak", "software development", "it company"],
+        "ai": [
+            "perusahaan AI", "artificial intelligence company", "AI startup",
+            "machine learning company", "AI development", "ai developer",
+            "perusahaan kecerdasan buatan", "data science company",
+        ],
+        "fullstack": [
+            "web development", "perusahaan web", "pengembang aplikasi",
+            "it consultant", "digital agency", "jasa pembuatan website",
+        ],
+        "game": ["game developer", "game studio", "perusahaan game"],
+    },
+    "en": {
+        "software": ["software house", "software development company", "IT company", "tech company"],
+        "ai": [
+            "AI startup", "artificial intelligence company", "machine learning company",
+            "AI development", "computer vision company", "data science company",
+            "chatbot company",
+        ],
+        "fullstack": [
+            "web development agency", "frontend developer", "backend developer",
+            "fullstack developer", "digital agency", "IT consultancy",
+        ],
+        "game": ["game developer", "game studio", "gaming company"],
+    },
+}
+
+# Legacy: query per role untuk ID-Jakarta (backward compat)
 QUERIES_BY_ROLE: dict[str, list[str]] = {
     "software": [
         "software house",
@@ -205,6 +263,13 @@ ROLE_LABEL_ID: dict[str, str] = {
     "game": "game development",
     "fullstack": "fullstack / web development",
     "software": "software development",
+}
+
+ROLE_LABEL_EN: dict[str, str] = {
+    "ai": "AI / Machine Learning",
+    "game": "Game Development",
+    "fullstack": "Fullstack / Web Development",
+    "software": "Software Development",
 }
 
 SEARCH_ACTIONS_DELAY_SEC = (2.0, 6.0)
