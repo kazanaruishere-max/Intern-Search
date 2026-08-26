@@ -85,6 +85,7 @@ def build_shortlist(
     min_rating: float = 4.5,
     ai_by_id: dict[int, bool] | None = None,
     region: str = "ID-Jakarta",
+    health_by_id: dict[int, int] | None = None,
 ) -> list[tuple[object, float, bool]]:
     """Filter & ranking kandidat. Return [(company, fit_score, ai_focus), ...]."""
     ai_by_id = ai_by_id or {}
@@ -130,6 +131,19 @@ def build_shortlist(
 
     candidates.sort(key=lambda item: rank_key(item))
     return candidates
+
+
+def health_rank_key(item: tuple[object, float, bool], health_by_id: dict[int, int]) -> tuple:
+    """Sort sehat dulu (health score tinggi), lalu AI bonus, lalu ulasan."""
+    company, fit, ai = item
+    health = health_by_id.get(getattr(company, "id", -1), 50)
+    ai_bonus = 10.0 if ai else 0.0
+    return (
+        -health,
+        -(fit + ai_bonus),
+        -(getattr(company, "review_count", 0) or 0),
+        getattr(company, "distance_km", 9999.0) or 9999.0,
+    )
 
 
 def _better_than(

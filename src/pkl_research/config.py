@@ -147,6 +147,44 @@ MAX_PHOTOS = 20
 
 QUERY_SUFFIX = "jakarta selatan"
 
+# Red flag keywords — ditemukan di review/website menandakan perusahaan bermasalah
+RED_FLAG_KEYWORDS = {
+    "financial": ["gaji telat", "gaji terlambat", "belum dibayar", "salary delay",
+                  "gaji dipotong", "tidak dibayar", "belum gajian"],
+    "layoff": ["phk", "pemutusan", "layoff", "resign massal", "banyak yang keluar",
+               "bubar", "tutup cabang"],
+    "toxic": ["lembur tanpa bayar", "unpaid overtime", "burnout", "tekanan berlebihan",
+              "toxic", "lingkungan kerja buruk", "overwork", "no work life balance"],
+    "unprofessional": ["tidak profesional", "unprofessional", "tidak jelas",
+                       "janji tidak ditepati", "broken promise"],
+}
+
+# Green flag keywords — sinyal perusahaan sehat dan layak PKL
+GREEN_FLAG_KEYWORDS = {
+    "mentorship": ["mentorship", "mentoring", "bimbingan", "dibimbing", "belajar",
+                   "training", "pelatihan internal"],
+    "culture": ["work life balance", "fleksibel", "flexible hours", "remote friendly",
+                "saling support", "tim solid"],
+    "growth": ["pengembangan karir", "career development", "promosi", "naik jabatan",
+               "skill upgrade", "certification support"],
+}
+
+# Perluasan query pencarian (AI-first + web + game)
+EXPANDED_QUERIES = {
+    "ai": [
+        "AI engineer", "deep learning company", "NLP company",
+        "generative AI", "AI research lab",
+    ],
+    "fullstack": [
+        "web app development", "SaaS company", "mobile app development",
+        "software agency", "API development", "DevOps company",
+    ],
+    "game": [
+        "indie game studio", "game art studio", "unity developer",
+        "unreal engine company",
+    ],
+}
+
 # i18n queries — dipilih otomatis berdasarkan REGIONS[region].lang
 QUERIES_BY_LANG: dict[str, dict[str, list[str]]] = {
     "id": {
