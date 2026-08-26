@@ -231,34 +231,60 @@ def search(
     center = {"lat": region_cfg["lat"], "lng": region_cfg["lng"], "zoom": region_cfg["zoom"]}
     src_list = [s.strip().lower() for s in source.split(",") if s.strip()]
     if "all" in src_list:
-        src_list = ["maps"]
+        src_list = ["maps", "glints", "linkedin", "jobstreet", "indeed"]
 
-    candidates = []
-    if "maps" in src_list:
+    from pkl_research.scraper.plugins import register_all, get_scraper
+    register_all()
+
+    candidates_by_source: dict[str, list] = {}
+    for src in src_list:
+        scraper = get_scraper(src)
+        if not scraper:
+            console.print(f"[yellow]Source '{src}' tidak dikenal, dilewati.[/yellow]")
+            continue
+        source_queries = queries if src == "maps" else [q.replace(config.QUERY_SUFFIX, "").strip() for q in queries]
         with open_browser_session(backend=backend, headless=headless) as ctx:
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
-            candidates = collect_candidates(page, queries, center)
+            results = []
+            for q in source_queries[:10]:
+                found = scraper.collect(page, q, {"lang": region_cfg.get("lang", "id"), **region_cfg})
+                results.extend(found)
+                if len(results) >= 30:
+                    break
+        candidates_by_source[src] = results
+        console.print(f"  [green]{src}[/green]: {len(results)} kandidat")
 
     added = passed = 0
-    for c in candidates:
-        c = _apply_filters(c)
-        c.region = region
-        c.source = source if source != "all" else "maps"
-        c.source_id = c.place_id
-        c.scraped_at = _now()
-        c.categories = c.categories or ([c.category] if c.category else [])
-        existing = repo.get_by_place_id(c.place_id)
-        if existing is None:
-            added += 1
-        if c.in_jakarta and c.rating and c.review_count and c.rating >= config.MIN_RATING:
-            passed += 1
-        company_id = repo.upsert(c)
-        app_repo.get_or_create(company_id)
+    for src, candidates in candidates_by_source.items():
+        for c in candidates:
+            c = _apply_filters(c)
+            c.region = region
+            c.source = src
+            c.source_id = c.place_id
+            c.scraped_at = _now()
+            c.categories = c.categories or ([c.category] if c.category else [])
+            existing = repo.get_by_place_id(c.place_id)
+            if existing is None:
+                added += 1
+            if c.in_jakarta and c.rating and c.review_count and c.rating >= config.MIN_RATING:
+                passed += 1
+            company_id = repo.upsert(c)
+            app_repo.get_or_create(company_id)
 
     console.print(
-        f"[green]Selesai.[/green] Kandidat unik: {len(candidates)} "
+        f"[green]Selesai.[/green] Kandidat unik: {sum(len(v) for v in candidates_by_source.values())} "
         f"(baru {added}), lolos filter Jakarta+rating: {passed}."
     )
+
+    # Output dipisah per source
+    config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    from pkl_research.exporter import companies_to_csv
+    for src, cands in candidates_by_source.items():
+        if not cands:
+            continue
+        path = config.OUTPUT_DIR / f"results_{src}.csv"
+        companies_to_csv(cands, path)
+        console.print(f"  📄 results_{src}.csv ({len(cands)} perusahaan)")
 
 
 @app.command()

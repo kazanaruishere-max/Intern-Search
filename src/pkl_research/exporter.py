@@ -22,6 +22,23 @@ def _status_for(company_id: int | None, applications: list[Application]) -> str:
     return ""
 
 
+def companies_by_source_csv(
+    companies: list[Company],
+    output_dir: str | Path,
+) -> list[Path]:
+    """Export CSV per source — tiap sumber punya file sendiri."""
+    by_source: dict[str, list[Company]] = {}
+    for c in companies:
+        src = (c.source or "unknown").lower()
+        by_source.setdefault(src, []).append(c)
+    paths = []
+    for source, comps in sorted(by_source.items()):
+        path = Path(output_dir) / f"companies_{source}.csv"
+        companies_to_csv(comps, path)
+        paths.append(path)
+    return paths
+
+
 def companies_to_csv(
     companies: list[Company],
     path: str | Path,
