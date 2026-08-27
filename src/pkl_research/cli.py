@@ -17,6 +17,7 @@ from pkl_research.db.repositories import (
     CompanyProfileRepository,
     CompanyRepository,
     ReviewRepository,
+    VacancyRepository,
 )
 from pkl_research.db.schema import apply_migrations
 from pkl_research import cv as cvmod
@@ -30,7 +31,7 @@ from pkl_research.exporter import (
 )
 from pkl_research.filters import evaluate_candidate
 from pkl_research.messaging import build_drafts
-from pkl_research.models import Company, CompanyProfile, Review
+from pkl_research.models import Company, CompanyProfile, Review, Vacancy
 from pkl_research.scraper.backend import open_browser_session, resolve_backend
 from pkl_research.scraper.browser import human_delay
 from pkl_research.scraper.detail import apply_detail, scrape_detail
@@ -48,9 +49,11 @@ app = typer.Typer(help="PKL Research Tool — riset perusahaan IT Jakarta Selata
 db_app = typer.Typer(help="Manajemen database.")
 track_app = typer.Typer(help="Tracker status lamaran PKL.")
 cv_app = typer.Typer(help="Analisa CV & pencocokan arah/perusahaan.")
+vacancy_app = typer.Typer(help="Riset & manajemen lowongan kerja/magang publik.")
 app.add_typer(db_app, name="db")
 app.add_typer(track_app, name="track")
 app.add_typer(cv_app, name="cv")
+app.add_typer(vacancy_app, name="vacancy")
 
 
 def _connect():
@@ -812,6 +815,211 @@ def track_list(
             (app.notes or "")[:40],
         )
     console.print(table)
+
+
+# ---------------------------------------------------------------------------
+# vacancy
+# ---------------------------------------------------------------------------
+
+@vacancy_app.command("fetch")
+def vacancy_fetch(
+    sources: str = typer.Option("all", help="Koma terpisah: remotive,remoteok,himalayas,wwr,greenhouse,lever,ashby atau all"),
+    role: str = typer.Option("ai", help="Koma terpisah: software,ai,fullstack,game atau all"),
+    remote_only: bool = typer.Option(True, help="Hanya ambil lowongan remote"),
+    limit: int = typer.Option(30, help="Maksimal lowongan per kueri"),
+) -> None:
+    """Ambil lowongan publik & hitung kecocokan CV (global)."""
+    from pkl_research.scraper.vacancy_sources.base import register_all, get_source, all_sources
+    from pkl_research.vacancy_score import evaluate_vacancy
+
+    register_all()
+    conn = _connect()
+    repo = VacancyRepository(conn)
+    cv_analysis = _load_cv_analysis()
+
+    cfg = config.load_vacancy_sources()
+    active_aggs = cfg.get("aggregators", {}).get("active", [])
+    corp_boards = cfg.get("corporate_boards", [])
+
+    selected_sources = [s.strip().lower() for s in sources.split(",") if s.strip()]
+    if "all" in selected_sources:
+        selected_sources = all_sources()
+    
+    role_list = [r.strip().lower() for r in role.split(",") if r.strip()]
+    if "all" in role_list:
+        role_list = ["software", "ai", "fullstack", "game"]
+
+    queries = []
+    for r in role_list:
+        if r == "ai":
+            queries.extend(["AI intern", "machine learning intern"])
+        elif r == "software":
+            queries.extend(["software engineer intern", "software developer intern"])
+        elif r == "fullstack":
+            queries.extend(["fullstack developer intern", "backend developer intern", "frontend developer intern"])
+        elif r == "game":
+            queries.extend(["game developer intern"])
+        else:
+            queries.append(f"{r} intern")
+
+    fetched_count = 0
+    new_count = 0
+
+    table = Table(title=f"Lowongan Baru/Di-refresh ({sources})")
+    for col in ("Source", "Company", "Title", "Type", "Score"):
+        table.add_column(col)
+
+    for src_name in selected_sources:
+        src = get_source(src_name)
+        if not src:
+            continue
+
+        is_corp = src_name in ("greenhouse", "lever", "ashby")
+        if is_corp:
+            boards = [b for b in corp_boards if b.get("source") == src_name]
+            for b in boards:
+                token = b.get("board_token")
+                if not token:
+                    continue
+                for q in queries:
+                    try:
+                        jobs = src.fetch(q, limit=limit, board_token=token)
+                        for job in jobs:
+                            res = evaluate_vacancy(job, cv_analysis)
+                            job.fit_score = res["score"]
+                            existing = repo.get_by_source(job.source, job.source_id)
+                            repo.upsert(job)
+                            fetched_count += 1
+                            if not existing:
+                                new_count += 1
+                            table.add_row(job.source, job.company_name, job.title, job.employment_type or "-", f"{job.fit_score:g}")
+                    except Exception as e:
+                        console.print(f"[red]Error {src_name} ({token}): {e}[/red]")
+        else:
+            if src_name not in active_aggs and "all" not in sources.split(","):
+                continue
+            for q in queries:
+                try:
+                    jobs = src.fetch(q, limit=limit)
+                    for job in jobs:
+                        if remote_only and not job.remote:
+                            continue
+                        res = evaluate_vacancy(job, cv_analysis)
+                        job.fit_score = res["score"]
+                        existing = repo.get_by_source(job.source, job.source_id)
+                        repo.upsert(job)
+                        fetched_count += 1
+                        if not existing:
+                            new_count += 1
+                        table.add_row(job.source, job.company_name, job.title, job.employment_type or "-", f"{job.fit_score:g}")
+                except Exception as e:
+                    console.print(f"[red]Error {src_name} kueri '{q}': {e}[/red]")
+
+    console.print(table)
+    console.print(f"[green]Selesai.[/green] Total lowongan diambil: {fetched_count} (baru: {new_count}).")
+
+
+@vacancy_app.command("list")
+def vacancy_list(
+    source: str | None = typer.Option(None, help="Filter berdasarkan sumber"),
+    min_score: float = typer.Option(0.0, help="Minimal fit score CV"),
+    remote_only: bool = typer.Option(False, help="Hanya tampilkan remote"),
+    employment_type: str | None = typer.Option(None, help="Filter: intern|fulltime|freelance|contract"),
+) -> None:
+    """Tampilkan lowongan aktif dari database terurut berdasarkan fit score."""
+    conn = _connect()
+    repo = VacancyRepository(conn)
+    jobs = repo.find(
+        source=source,
+        min_fit=min_score,
+        remote_only=remote_only,
+        status="active",
+        employment_type=employment_type,
+    )
+    table = Table(title=f"Lowongan Merged ({len(jobs)})")
+    for col in ("ID", "Source", "Company", "Title", "Jarak/Remote", "Type", "Score"):
+        table.add_column(col)
+    for j in jobs:
+        loc = "Remote" if j.remote else (j.location or "-")
+        table.add_row(
+            str(j.id),
+            j.source,
+            j.company_name,
+            j.title,
+            loc,
+            j.employment_type or "-",
+            f"{j.fit_score:g}" if j.fit_score is not None else "-",
+        )
+    console.print(table)
+
+
+@vacancy_app.command("rank")
+def vacancy_rank() -> None:
+    """Hitung ulang fit score semua lowongan aktif berdasarkan CV terbaru."""
+    conn = _connect()
+    repo = VacancyRepository(conn)
+    cv_analysis = _load_cv_analysis()
+    if not cv_analysis:
+        raise typer.BadParameter("Belum ada hasil analisa CV. Jalankan pkl-research cv analyze dulu.")
+    
+    from pkl_research.vacancy_score import evaluate_vacancy
+    jobs = repo.find(status="active")
+    updated = 0
+    for j in jobs:
+        res = evaluate_vacancy(j, cv_analysis)
+        j.fit_score = res["score"]
+        repo.upsert(j)
+        updated += 1
+    console.print(f"[green]Selesai.[/green] {updated} lowongan berhasil di-ranking ulang.")
+
+
+@vacancy_app.command("show")
+def vacancy_show(vacancy_id: int = typer.Argument(..., help="ID lowongan di DB")) -> None:
+    """Tampilkan detail lowongan, kecocokan skill, dan bendera red flag/ghost."""
+    conn = _connect()
+    repo = VacancyRepository(conn)
+    j = repo.get(vacancy_id)
+    if not j:
+        raise typer.BadParameter(f"Lowongan dengan ID {vacancy_id} tidak ditemukan.")
+    
+    cv_analysis = _load_cv_analysis()
+    from pkl_research.vacancy_score import evaluate_vacancy
+    res = evaluate_vacancy(j, cv_analysis)
+
+    console.print(Panel(f"[bold]{j.company_name}[/bold]\n[bold]{j.title}[/bold]\nLocation: {j.location or '-'}\nURL: {j.url or '-'}", title=f"Lowongan ID {j.id}"))
+    
+    console.print("\n[bold]Skor Kecocokan:[/bold]")
+    console.print(f"  Score: [bold cyan]{res['score']}/100[/bold cyan]")
+    
+    if res["matched_skills"]:
+        console.print(f"  [green]Skill Cocok:[/green] {', '.join(res['matched_skills'])}")
+    if res["missing_skills"]:
+        console.print(f"  [yellow]Skill Kurang:[/yellow] {', '.join(res['missing_skills'])}")
+
+    if res["red_flags"]:
+        console.print(f"  [red]🔴 RED FLAGS:[/red] {', '.join(res['red_flags'])}")
+    if res["ghost_flag"]:
+        console.print("  [red]👻 GHOST VACANCY (Lowongan >30 hari lalu)[/red]")
+    if j.repost_count > 0:
+        console.print(f"  [yellow]🔄 REPOSTED ({j.repost_count}x)[/yellow]")
+
+    console.print("\n[bold]Deskripsi Pekerjaan:[/bold]")
+    desc = j.description_text or ""
+    desc_clean = re.sub(r'<[^>]+>', '', desc)
+    console.print(desc_clean[:1000] + ("..." if len(desc_clean) > 1000 else ""))
+
+
+@vacancy_app.command("expire")
+def vacancy_expire(
+    days: int = typer.Option(30, help="Jumlah hari tidak terlihat sebelum expired"),
+) -> None:
+    """Tandai lowongan lama yang tidak muncul lagi sebagai expired."""
+    conn = _connect()
+    repo = VacancyRepository(conn)
+    from datetime import datetime, timedelta, timezone
+    limit_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    expired = repo.mark_expired(limit_date)
+    console.print(f"[green]Selesai.[/green] {expired} lowongan ditandai expired.")
 
 
 def main() -> None:

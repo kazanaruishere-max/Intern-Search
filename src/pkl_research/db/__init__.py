@@ -5,6 +5,7 @@ from pkl_research.db.repositories import (
     CompanyProfileRepository,
     CompanyRepository,
     ReviewRepository,
+    VacancyRepository,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "CompanyProfileRepository",
     "CompanyRepository",
     "ReviewRepository",
+    "VacancyRepository",
 ]

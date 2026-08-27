@@ -6,7 +6,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 
-from pkl_research.models import Application, Company, CompanyProfile, Review, _loads
+from pkl_research.models import Application, Company, CompanyProfile, Review, Vacancy, _loads
 
 COMPANY_COLUMNS = [
     "place_id", "name", "category", "categories", "rating", "review_count",
@@ -24,6 +24,13 @@ PROFILE_COLUMNS = [
     "emails", "social", "linkedin_url", "linkedin_label", "whatsapp",
     "tech_stack", "keywords", "fetch_status", "fetched_at", "created_at",
     "updated_at",
+]
+
+VACANCY_COLUMNS = [
+    "source", "source_id", "title", "company_name", "location", "remote",
+    "employment_type", "salary_min", "salary_max", "currency", "description_text",
+    "tags", "url", "posted_at", "first_seen", "last_seen", "status",
+    "repost_count", "fit_score", "scraped_at",
 ]
 
 APPLICATION_COLUMNS = [
@@ -456,3 +463,117 @@ class CompanyProfileRepository:
                 (CompanyProfile(company_id=company_id, **data), Company.from_row(company))
             )
         return result
+
+
+class VacancyRepository:
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self.conn = conn
+
+    def upsert(self, vac: Vacancy) -> int:
+        """Insert new or update based on (source, source_id). Return row id."""
+        existing = self.conn.execute(
+            "SELECT id, posted_at, repost_count, first_seen FROM vacancies WHERE source = ? AND source_id = ?",
+            (vac.source, vac.source_id)
+        ).fetchone()
+
+        now_str = _now()
+        first_seen = vac.first_seen or now_str
+        last_seen = vac.last_seen or now_str
+        repost_count = vac.repost_count
+
+        if existing:
+            first_seen = existing["first_seen"] or first_seen
+            if vac.posted_at and existing["posted_at"] and vac.posted_at != existing["posted_at"]:
+                repost_count = (existing["repost_count"] or 0) + 1
+
+        data = {
+            "source": vac.source,
+            "source_id": vac.source_id,
+            "title": vac.title,
+            "company_name": vac.company_name,
+            "location": vac.location,
+            "remote": int(vac.remote),
+            "employment_type": vac.employment_type,
+            "salary_min": vac.salary_min,
+            "salary_max": vac.salary_max,
+            "currency": vac.currency,
+            "description_text": vac.description_text,
+            "tags": _json(vac.tags),
+            "url": vac.url,
+            "posted_at": vac.posted_at,
+            "first_seen": first_seen,
+            "last_seen": last_seen,
+            "status": vac.status or "active",
+            "repost_count": repost_count,
+            "fit_score": vac.fit_score,
+            "scraped_at": vac.scraped_at or now_str,
+        }
+
+        columns = VACANCY_COLUMNS
+        placeholders = ",".join(f":{c}" for c in columns)
+        updates = ",".join(f"{c}=excluded.{c}" for c in columns if c not in ("source", "source_id", "first_seen", "repost_count"))
+        
+        row = self.conn.execute(
+            f"""
+            INSERT INTO vacancies ({','.join(columns)})
+            VALUES ({placeholders})
+            ON CONFLICT(source, source_id) DO UPDATE SET {updates}, repost_count = :repost_count
+            RETURNING id
+            """,
+            data,
+        ).fetchone()
+        self.conn.commit()
+        return int(row["id"])
+
+    def get(self, vacancy_id: int) -> Vacancy | None:
+        row = self.conn.execute(
+            "SELECT * FROM vacancies WHERE id = ?", (vacancy_id,)
+        ).fetchone()
+        return Vacancy.from_row(row) if row else None
+
+    def get_by_source(self, source: str, source_id: str) -> Vacancy | None:
+        row = self.conn.execute(
+            "SELECT * FROM vacancies WHERE source = ? AND source_id = ?", (source, source_id)
+        ).fetchone()
+        return Vacancy.from_row(row) if row else None
+
+    def find(
+        self,
+        source: str | None = None,
+        min_fit: float | None = None,
+        remote_only: bool = False,
+        status: str | None = "active",
+        employment_type: str | None = None,
+    ) -> list[Vacancy]:
+        where: list[str] = []
+        params: list[object] = []
+        if source:
+            where.append("source = ?")
+            params.append(source)
+        if min_fit is not None:
+            where.append("fit_score >= ?")
+            params.append(min_fit)
+        if remote_only:
+            where.append("remote = 1")
+        if status:
+            where.append("status = ?")
+            params.append(status)
+        if employment_type:
+            where.append("employment_type = ?")
+            params.append(employment_type)
+
+        clause = f"WHERE {' AND '.join(where)}" if where else ""
+        rows = self.conn.execute(
+            f"SELECT * FROM vacancies {clause} ORDER BY fit_score DESC, posted_at DESC",
+            params,
+        ).fetchall()
+        return [Vacancy.from_row(row) for row in rows]
+
+    def mark_expired(self, before_date: str) -> int:
+        cur = self.conn.execute(
+            "UPDATE vacancies SET status = 'expired' WHERE last_seen < ? AND status = 'active'",
+            (before_date,),
+        )
+        self.conn.commit()
+        return cur.rowcount
+

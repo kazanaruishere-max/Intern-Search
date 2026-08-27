@@ -1,0 +1,20 @@
+# Konfigurasi Sumber Lowongan Kerja / Magang Publik (v3.0)
+
+[aggregators]
+# Daftar aggregator lowongan remote/magang yang diaktifkan
+active = ["remotive", "remoteok", "himalayas", "wwr"]
+
+[[corporate_boards]]
+# Contoh konfigurasi Greenhouse board token perusahaan target
+source = "greenhouse"
+board_token = "openai"
+
+[[corporate_boards]]
+# Contoh konfigurasi Lever board token perusahaan target
+source = "lever"
+board_token = "deliveroo"
+
+[[corporate_boards]]
+# Contoh konfigurasi Ashby board token perusahaan target
+source = "ashby"
+board_token = "vercel"

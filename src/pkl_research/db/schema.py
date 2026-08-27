@@ -139,6 +139,35 @@ MIGRATIONS: list[str] = [
     ALTER TABLE companies ADD COLUMN source_id TEXT;
     CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_source_id ON companies(source, source_id);
     """,
+    # v8: tabel vacancies + index UNIQUE(source, source_id)
+    """
+    CREATE TABLE IF NOT EXISTS vacancies (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        company_name TEXT NOT NULL,
+        location TEXT,
+        remote INTEGER DEFAULT 0,
+        employment_type TEXT,
+        salary_min REAL,
+        salary_max REAL,
+        currency TEXT,
+        description_text TEXT,
+        tags TEXT,
+        url TEXT,
+        posted_at TEXT,
+        first_seen TEXT,
+        last_seen TEXT,
+        status TEXT DEFAULT 'active',
+        repost_count INTEGER DEFAULT 0,
+        fit_score REAL,
+        scraped_at TEXT
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_vacancies_source_source_id ON vacancies(source, source_id);
+    CREATE INDEX IF NOT EXISTS idx_vacancies_fit_score ON vacancies(fit_score);
+    CREATE INDEX IF NOT EXISTS idx_vacancies_status ON vacancies(status);
+    """,
 ]
 
 

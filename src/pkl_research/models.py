@@ -227,3 +227,63 @@ class CompanyProfile:
         for key in ("ai_subfields", "ai_keywords", "ai_evidence", "emails", "social", "tech_stack", "keywords"):
             data[key] = _loads(data.pop(key)) or []
         return cls(**data)
+
+
+@dataclass
+class Vacancy:
+    """Satu lowongan magang/pekerjaan hasil scrape/aggregator."""
+
+    source: str
+    source_id: str
+    title: str
+    company_name: str
+    location: str | None = None
+    remote: bool = False
+    employment_type: str | None = None
+    salary_min: float | None = None
+    salary_max: float | None = None
+    currency: str | None = None
+    description_text: str | None = None
+    tags: list[str] = field(default_factory=list)
+    url: str | None = None
+    posted_at: str | None = None
+    first_seen: str | None = None
+    last_seen: str | None = None
+    status: str = "active"
+    repost_count: int = 0
+    fit_score: float | None = None
+    scraped_at: str | None = None
+    id: int | None = None
+
+    @classmethod
+    def from_row(cls, row: sqlite3.Row) -> "Vacancy":
+        data = dict(row)
+        data["remote"] = bool(data.pop("remote"))
+        data["tags"] = _loads(data.pop("tags")) or []
+        return cls(**data)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "source": self.source,
+            "source_id": self.source_id,
+            "title": self.title,
+            "company_name": self.company_name,
+            "location": self.location,
+            "remote": self.remote,
+            "employment_type": self.employment_type,
+            "salary_min": self.salary_min,
+            "salary_max": self.salary_max,
+            "currency": self.currency,
+            "description_text": self.description_text,
+            "tags": self.tags,
+            "url": self.url,
+            "posted_at": self.posted_at,
+            "first_seen": self.first_seen,
+            "last_seen": self.last_seen,
+            "status": self.status,
+            "repost_count": self.repost_count,
+            "fit_score": self.fit_score,
+            "scraped_at": self.scraped_at,
+        }
+

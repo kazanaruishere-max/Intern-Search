@@ -351,3 +351,18 @@ def home_location() -> dict[str, float] | None:
 def camofox_api() -> str | None:
     """URL REST API Camofox (opsional). Kosong = pakai Playwright."""
     return os.getenv("CAMOFOX_API", "").strip() or None
+
+
+def load_vacancy_sources() -> dict:
+    """Load konfigurasi sumber lowongan dari vacancy_sources.toml."""
+    import tomllib
+
+    path = PROJECT_ROOT / "vacancy_sources.toml"
+    if not path.exists():
+        return {"aggregators": {"active": []}, "corporate_boards": []}
+    try:
+        with open(path, "rb") as f:
+            return tomllib.load(f)
+    except Exception:
+        return {"aggregators": {"active": []}, "corporate_boards": []}
+

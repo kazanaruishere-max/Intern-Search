@@ -5,9 +5,10 @@ from pkl_research.db.repositories import (
     ApplicationRepository,
     CompanyRepository,
     ReviewRepository,
+    VacancyRepository,
 )
 from pkl_research.db.schema import apply_migrations
-from pkl_research.models import Application, Company, Review
+from pkl_research.models import Application, Company, Review, Vacancy
 
 
 @pytest.fixture()
@@ -114,3 +115,59 @@ def test_pending_enrichment(conn):
     repo.mark_enriched(cid)
     assert repo.pending_enrichment() == []
     assert repo.stats()["enriched"] == 1
+
+
+def test_vacancy_repository_flow(conn):
+    repo = VacancyRepository(conn)
+    v1 = Vacancy(
+        source="remotive",
+        source_id="12345",
+        title="AI Engineer",
+        company_name="AI Corp",
+        location="Remote",
+        remote=True,
+        employment_type="intern",
+        description_text="Implement neural networks",
+        tags=["python", "ai"],
+        url="http://example.com/job",
+        posted_at="2026-08-10T12:00:00",
+    )
+    row_id = repo.upsert(v1)
+    assert row_id > 0
+
+    fetched = repo.get(row_id)
+    assert fetched is not None
+    assert fetched.title == "AI Engineer"
+    assert fetched.remote is True
+    assert fetched.tags == ["python", "ai"]
+
+    # Test conflict and repost_count increment on different posted_at
+    v2 = Vacancy(
+        source="remotive",
+        source_id="12345",
+        title="AI Engineer",
+        company_name="AI Corp",
+        location="Remote",
+        remote=True,
+        employment_type="intern",
+        description_text="Implement neural networks",
+        tags=["python", "ai"],
+        url="http://example.com/job",
+        posted_at="2026-08-11T12:00:00", # different date
+    )
+    row_id2 = repo.upsert(v2)
+    assert row_id == row_id2
+    
+    fetched2 = repo.get(row_id)
+    assert fetched2.repost_count == 1
+    assert fetched2.posted_at == "2026-08-11T12:00:00"
+
+    # Test find
+    active_vacs = repo.find(source="remotive", remote_only=True)
+    assert len(active_vacs) == 1
+
+    # Test mark_expired
+    expired_count = repo.mark_expired("2027-01-01T00:00:00")
+    assert expired_count == 1
+    assert repo.get(row_id).status == "expired"
+
